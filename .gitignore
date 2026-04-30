@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+
+# Local Oxford data/media and installed reader artifacts
+*.DAT
+*.dat
+*.iso
+*.ISO
+*.EXE
+*.exe
+*.DLL
+*.dll
+*.HLP
+*.hlp
+*.DOC
+*.doc
+*.WRI
+*.wri
+*.BMP
+*.bmp
+INSTALL.LOG
+
+# Local editor/OS noise
+*.swp
+.DS_Store

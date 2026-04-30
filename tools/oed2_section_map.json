@@ -1,0 +1,1095 @@
+{
+  "file": "/Volumes/OED2/OED2.DAT",
+  "file_size": 635400192,
+  "profile_window": 65536,
+  "header": {
+    "long_count": 66,
+    "all_24bit": true,
+    "min_offset": 524288,
+    "max_offset": 16305939,
+    "entries": [
+      {
+        "i": 0,
+        "raw": 1077270,
+        "offset": 1077270,
+        "page": 16,
+        "page_offset": 28694
+      },
+      {
+        "i": 1,
+        "raw": 1048576,
+        "offset": 1048576,
+        "page": 16,
+        "page_offset": 0
+      },
+      {
+        "i": 2,
+        "raw": 15762432,
+        "offset": 15762432,
+        "page": 240,
+        "page_offset": 33792
+      },
+      {
+        "i": 3,
+        "raw": 15228692,
+        "offset": 15228692,
+        "page": 232,
+        "page_offset": 24340
+      },
+      {
+        "i": 4,
+        "raw": 3161876,
+        "offset": 3161876,
+        "page": 48,
+        "page_offset": 16148
+      },
+      {
+        "i": 5,
+        "raw": 2646036,
+        "offset": 2646036,
+        "page": 40,
+        "page_offset": 24596
+      },
+      {
+        "i": 6,
+        "raw": 10005524,
+        "offset": 10005524,
+        "page": 152,
+        "page_offset": 44052
+      },
+      {
+        "i": 7,
+        "raw": 15767828,
+        "offset": 15767828,
+        "page": 240,
+        "page_offset": 39188
+      },
+      {
+        "i": 8,
+        "raw": 14199828,
+        "offset": 14199828,
+        "page": 216,
+        "page_offset": 44052
+      },
+      {
+        "i": 9,
+        "raw": 5824788,
+        "offset": 5824788,
+        "page": 88,
+        "page_offset": 57620
+      },
+      {
+        "i": 10,
+        "raw": 8962324,
+        "offset": 8962324,
+        "page": 136,
+        "page_offset": 49428
+      },
+      {
+        "i": 11,
+        "raw": 10019092,
+        "offset": 10019092,
+        "page": 152,
+        "page_offset": 57620
+      },
+      {
+        "i": 12,
+        "raw": 3671317,
+        "offset": 3671317,
+        "page": 56,
+        "page_offset": 1301
+      },
+      {
+        "i": 13,
+        "raw": 12123412,
+        "offset": 12123412,
+        "page": 184,
+        "page_offset": 64788
+      },
+      {
+        "i": 14,
+        "raw": 4719893,
+        "offset": 4719893,
+        "page": 72,
+        "page_offset": 1301
+      },
+      {
+        "i": 15,
+        "raw": 9973269,
+        "offset": 9973269,
+        "page": 152,
+        "page_offset": 11797
+      },
+      {
+        "i": 16,
+        "raw": 1096485,
+        "offset": 1096485,
+        "page": 16,
+        "page_offset": 47909
+      },
+      {
+        "i": 17,
+        "raw": 12594709,
+        "offset": 12594709,
+        "page": 192,
+        "page_offset": 11797
+      },
+      {
+        "i": 18,
+        "raw": 8446738,
+        "offset": 8446738,
+        "page": 128,
+        "page_offset": 58130
+      },
+      {
+        "i": 19,
+        "raw": 15261202,
+        "offset": 15261202,
+        "page": 232,
+        "page_offset": 56850
+      },
+      {
+        "i": 20,
+        "raw": 12116754,
+        "offset": 12116754,
+        "page": 184,
+        "page_offset": 58130
+      },
+      {
+        "i": 21,
+        "raw": 2157842,
+        "offset": 2157842,
+        "page": 32,
+        "page_offset": 60690
+      },
+      {
+        "i": 22,
+        "raw": 8405011,
+        "offset": 8405011,
+        "page": 128,
+        "page_offset": 16403
+      },
+      {
+        "i": 23,
+        "raw": 8920595,
+        "offset": 8920595,
+        "page": 136,
+        "page_offset": 7699
+      },
+      {
+        "i": 24,
+        "raw": 12599315,
+        "offset": 12599315,
+        "page": 192,
+        "page_offset": 16403
+      },
+      {
+        "i": 25,
+        "raw": 12606739,
+        "offset": 12606739,
+        "page": 192,
+        "page_offset": 23827
+      },
+      {
+        "i": 26,
+        "raw": 8433683,
+        "offset": 8433683,
+        "page": 128,
+        "page_offset": 45075
+      },
+      {
+        "i": 27,
+        "raw": 11575571,
+        "offset": 11575571,
+        "page": 176,
+        "page_offset": 41235
+      },
+      {
+        "i": 28,
+        "raw": 12627987,
+        "offset": 12627987,
+        "page": 192,
+        "page_offset": 45075
+      },
+      {
+        "i": 29,
+        "raw": 11586579,
+        "offset": 11586579,
+        "page": 176,
+        "page_offset": 52243
+      },
+      {
+        "i": 30,
+        "raw": 1101843,
+        "offset": 1101843,
+        "page": 16,
+        "page_offset": 53267
+      },
+      {
+        "i": 31,
+        "raw": 16305939,
+        "offset": 16305939,
+        "page": 248,
+        "page_offset": 53011
+      },
+      {
+        "i": 32,
+        "raw": 5296147,
+        "offset": 5296147,
+        "page": 80,
+        "page_offset": 53267
+      },
+      {
+        "i": 33,
+        "raw": 6869011,
+        "offset": 6869011,
+        "page": 104,
+        "page_offset": 53267
+      },
+      {
+        "i": 34,
+        "raw": 5784577,
+        "offset": 5784577,
+        "page": 88,
+        "page_offset": 17409
+      },
+      {
+        "i": 35,
+        "raw": 7921664,
+        "offset": 7921664,
+        "page": 120,
+        "page_offset": 57344
+      },
+      {
+        "i": 36,
+        "raw": 9978881,
+        "offset": 9978881,
+        "page": 152,
+        "page_offset": 17409
+      },
+      {
+        "i": 37,
+        "raw": 10503169,
+        "offset": 10503169,
+        "page": 160,
+        "page_offset": 17409
+      },
+      {
+        "i": 38,
+        "raw": 11027202,
+        "offset": 11027202,
+        "page": 168,
+        "page_offset": 17154
+      },
+      {
+        "i": 39,
+        "raw": 15748106,
+        "offset": 15748106,
+        "page": 240,
+        "page_offset": 19466
+      },
+      {
+        "i": 40,
+        "raw": 11536394,
+        "offset": 11536394,
+        "page": 176,
+        "page_offset": 2058
+      },
+      {
+        "i": 41,
+        "raw": 3165450,
+        "offset": 3165450,
+        "page": 48,
+        "page_offset": 19722
+      },
+      {
+        "i": 42,
+        "raw": 3689738,
+        "offset": 3689738,
+        "page": 56,
+        "page_offset": 19722
+      },
+      {
+        "i": 43,
+        "raw": 13107467,
+        "offset": 13107467,
+        "page": 200,
+        "page_offset": 267
+      },
+      {
+        "i": 44,
+        "raw": 7363600,
+        "offset": 7363600,
+        "page": 112,
+        "page_offset": 23568
+      },
+      {
+        "i": 45,
+        "raw": 8408080,
+        "offset": 8408080,
+        "page": 128,
+        "page_offset": 19472
+      },
+      {
+        "i": 46,
+        "raw": 11557904,
+        "offset": 11557904,
+        "page": 176,
+        "page_offset": 23568
+      },
+      {
+        "i": 47,
+        "raw": 12082192,
+        "offset": 12082192,
+        "page": 184,
+        "page_offset": 23568
+      },
+      {
+        "i": 48,
+        "raw": 4753424,
+        "offset": 4753424,
+        "page": 72,
+        "page_offset": 34832
+      },
+      {
+        "i": 49,
+        "raw": 9964817,
+        "offset": 9964817,
+        "page": 152,
+        "page_offset": 3345
+      },
+      {
+        "i": 50,
+        "raw": 6878736,
+        "offset": 6878736,
+        "page": 104,
+        "page_offset": 62992
+      },
+      {
+        "i": 51,
+        "raw": 14159121,
+        "offset": 14159121,
+        "page": 216,
+        "page_offset": 3345
+      },
+      {
+        "i": 52,
+        "raw": 14683409,
+        "offset": 14683409,
+        "page": 224,
+        "page_offset": 3345
+      },
+      {
+        "i": 53,
+        "raw": 3163921,
+        "offset": 3163921,
+        "page": 48,
+        "page_offset": 18193
+      },
+      {
+        "i": 54,
+        "raw": 12636691,
+        "offset": 12636691,
+        "page": 192,
+        "page_offset": 53779
+      },
+      {
+        "i": 55,
+        "raw": 578323,
+        "offset": 578323,
+        "page": 8,
+        "page_offset": 54035
+      },
+      {
+        "i": 56,
+        "raw": 524288,
+        "offset": 524288,
+        "page": 8,
+        "page_offset": 0
+      },
+      {
+        "i": 57,
+        "raw": 6308117,
+        "offset": 6308117,
+        "page": 96,
+        "page_offset": 16661
+      },
+      {
+        "i": 58,
+        "raw": 2642197,
+        "offset": 2642197,
+        "page": 40,
+        "page_offset": 20757
+      },
+      {
+        "i": 59,
+        "raw": 2644757,
+        "offset": 2644757,
+        "page": 40,
+        "page_offset": 23317
+      },
+      {
+        "i": 60,
+        "raw": 3698965,
+        "offset": 3698965,
+        "page": 56,
+        "page_offset": 28949
+      },
+      {
+        "i": 61,
+        "raw": 6321941,
+        "offset": 6321941,
+        "page": 96,
+        "page_offset": 30485
+      },
+      {
+        "i": 62,
+        "raw": 16286741,
+        "offset": 16286741,
+        "page": 248,
+        "page_offset": 33813
+      },
+      {
+        "i": 63,
+        "raw": 3717141,
+        "offset": 3717141,
+        "page": 56,
+        "page_offset": 47125
+      },
+      {
+        "i": 64,
+        "raw": 9963286,
+        "offset": 9963286,
+        "page": 152,
+        "page_offset": 1814
+      },
+      {
+        "i": 65,
+        "raw": 15227670,
+        "offset": 15227670,
+        "page": 232,
+        "page_offset": 23318
+      }
+    ]
+  },
+  "diacritic_table": {
+    "start": 2048,
+    "pair_count": 193,
+    "sample": [
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 32,
+        "base": 32,
+        "base_char": " "
+      },
+      {
+        "decorated": 160,
+        "base": 160,
+        "base_char": null
+      },
+      {
+        "decorated": 160,
+        "base": 160,
+        "base_char": null
+      },
+      {
+        "decorated": 160,
+        "base": 160,
+        "base_char": null
+      },
+      {
+        "decorated": 160,
+        "base": 160,
+        "base_char": null
+      },
+      {
+        "decorated": 160,
+        "base": 160,
+        "base_char": null
+      },
+      {
+        "decorated": 160,
+        "base": 160,
+        "base_char": null
+      },
+      {
+        "decorated": 160,
+        "base": 160,
+        "base_char": null
+      }
+    ]
+  },
+  "sections": [
+    {
+      "start": 0,
+      "end": 589824,
+      "kind": "index",
+      "mean_entropy": 5.104137988198077,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 589824,
+      "end": 5963776,
+      "kind": "index",
+      "mean_entropy": 3.9327141003696773,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 5963776,
+      "end": 8781824,
+      "kind": "index",
+      "mean_entropy": 3.5519665552235846,
+      "note": ""
+    },
+    {
+      "start": 8781824,
+      "end": 14286848,
+      "kind": "mixed",
+      "mean_entropy": 5.344509874578628,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 14286848,
+      "end": 21757952,
+      "kind": "mixed",
+      "mean_entropy": 7.004245308328425,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 21757952,
+      "end": 25362432,
+      "kind": "mixed",
+      "mean_entropy": 5.159747905360659,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 25362432,
+      "end": 32964608,
+      "kind": "mixed",
+      "mean_entropy": 5.125604450047745,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 32964608,
+      "end": 35127296,
+      "kind": "mixed",
+      "mean_entropy": 5.109966341200785,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 35127296,
+      "end": 36569088,
+      "kind": "mixed",
+      "mean_entropy": 5.0595595279841,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 36569088,
+      "end": 38010880,
+      "kind": "mixed",
+      "mean_entropy": 5.271015345484314,
+      "note": ""
+    },
+    {
+      "start": 38010880,
+      "end": 168296448,
+      "kind": "compressed",
+      "mean_entropy": 7.870935018897445,
+      "note": ""
+    },
+    {
+      "start": 168296448,
+      "end": 173408256,
+      "kind": "mixed",
+      "mean_entropy": 6.8535850471127056,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 173408256,
+      "end": 184680448,
+      "kind": "mixed",
+      "mean_entropy": 5.2650400589642485,
+      "note": ""
+    },
+    {
+      "start": 184680448,
+      "end": 188350464,
+      "kind": "compressed",
+      "mean_entropy": 7.637050403372291,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 188350464,
+      "end": 190906368,
+      "kind": "compressed",
+      "mean_entropy": 7.57672587517257,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 190906368,
+      "end": 194117632,
+      "kind": "compressed",
+      "mean_entropy": 7.543675521259031,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 194117632,
+      "end": 197853184,
+      "kind": "compressed",
+      "mean_entropy": 7.624647204387121,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 197853184,
+      "end": 200212480,
+      "kind": "compressed",
+      "mean_entropy": 7.633219414312273,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 200212480,
+      "end": 201719808,
+      "kind": "mixed",
+      "mean_entropy": 6.9749834428462965,
+      "note": ""
+    },
+    {
+      "start": 201719808,
+      "end": 203751424,
+      "kind": "compressed",
+      "mean_entropy": 7.5388949424346166,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 203751424,
+      "end": 208404480,
+      "kind": "mixed",
+      "mean_entropy": 7.367591213689574,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 208404480,
+      "end": 211222528,
+      "kind": "compressed",
+      "mean_entropy": 7.536179952830985,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 211222528,
+      "end": 216727552,
+      "kind": "compressed",
+      "mean_entropy": 7.6047360014166205,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 216727552,
+      "end": 228786176,
+      "kind": "compressed",
+      "mean_entropy": 7.513239275013268,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 228786176,
+      "end": 230752256,
+      "kind": "mixed",
+      "mean_entropy": 7.363259636436209,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 230752256,
+      "end": 232062976,
+      "kind": "mixed",
+      "mean_entropy": 7.285144691230107,
+      "note": ""
+    },
+    {
+      "start": 232062976,
+      "end": 240189440,
+      "kind": "compressed",
+      "mean_entropy": 7.550718109107204,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 240189440,
+      "end": 244449280,
+      "kind": "mixed",
+      "mean_entropy": 7.250177847421377,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 244449280,
+      "end": 253952000,
+      "kind": "compressed",
+      "mean_entropy": 7.578112672083506,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 253952000,
+      "end": 257425408,
+      "kind": "compressed",
+      "mean_entropy": 7.568608241055833,
+      "note": "+absorb-frag +absorb-frag"
+    },
+    {
+      "start": 257425408,
+      "end": 263847936,
+      "kind": "mixed",
+      "mean_entropy": 7.265071856285738,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 263847936,
+      "end": 273416192,
+      "kind": "mixed",
+      "mean_entropy": 7.439888986062665,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 273416192,
+      "end": 274530304,
+      "kind": "mixed",
+      "mean_entropy": 7.2886892305482265,
+      "note": ""
+    },
+    {
+      "start": 274530304,
+      "end": 278724608,
+      "kind": "index",
+      "mean_entropy": 5.1696147576246645,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 278724608,
+      "end": 284426240,
+      "kind": "mixed",
+      "mean_entropy": 7.0592187393870285,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 284426240,
+      "end": 288555008,
+      "kind": "mixed",
+      "mean_entropy": 5.646459050061358,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 288555008,
+      "end": 317587456,
+      "kind": "mixed",
+      "mean_entropy": 7.221802117745136,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 317587456,
+      "end": 321388544,
+      "kind": "compressed",
+      "mean_entropy": 7.772362648770954,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 321388544,
+      "end": 323026944,
+      "kind": "mixed",
+      "mean_entropy": 7.427546328689158,
+      "note": "+absorb-frag +absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 323026944,
+      "end": 324927488,
+      "kind": "index",
+      "mean_entropy": 4.844656859783141,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 324927488,
+      "end": 330366976,
+      "kind": "compressed",
+      "mean_entropy": 7.727247856739094,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 330366976,
+      "end": 332595200,
+      "kind": "index",
+      "mean_entropy": 4.4884074938354726,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 332595200,
+      "end": 339148800,
+      "kind": "compressed",
+      "mean_entropy": 7.769240969330656,
+      "note": ""
+    },
+    {
+      "start": 339148800,
+      "end": 352649216,
+      "kind": "mixed",
+      "mean_entropy": 6.692952670421353,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 352649216,
+      "end": 358285312,
+      "kind": "mixed",
+      "mean_entropy": 6.867196504769603,
+      "note": ""
+    },
+    {
+      "start": 358285312,
+      "end": 361037824,
+      "kind": "index",
+      "mean_entropy": 2.5071065740466225,
+      "note": "+absorb-frag +absorb-frag +absorb-frag"
+    },
+    {
+      "start": 361037824,
+      "end": 364445696,
+      "kind": "mixed",
+      "mean_entropy": 7.193350719831936,
+      "note": ""
+    },
+    {
+      "start": 364445696,
+      "end": 369623040,
+      "kind": "compressed",
+      "mean_entropy": 7.737350148746524,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 369623040,
+      "end": 375128064,
+      "kind": "compressed",
+      "mean_entropy": 7.971598702870769,
+      "note": ""
+    },
+    {
+      "start": 375128064,
+      "end": 376504320,
+      "kind": "mixed",
+      "mean_entropy": 6.6338924588559625,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 376504320,
+      "end": 406388736,
+      "kind": "compressed",
+      "mean_entropy": 7.836733498552262,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 406388736,
+      "end": 446038016,
+      "kind": "compressed",
+      "mean_entropy": 7.813425242049314,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 446038016,
+      "end": 447807488,
+      "kind": "compressed",
+      "mean_entropy": 7.793850443629656,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 447807488,
+      "end": 454557696,
+      "kind": "compressed",
+      "mean_entropy": 7.805129967613352,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 454557696,
+      "end": 479395840,
+      "kind": "compressed",
+      "mean_entropy": 7.800098533971565,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 479395840,
+      "end": 484442112,
+      "kind": "compressed",
+      "mean_entropy": 7.792792058917543,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 484442112,
+      "end": 512425984,
+      "kind": "compressed",
+      "mean_entropy": 7.806820703637105,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 512425984,
+      "end": 519897088,
+      "kind": "compressed",
+      "mean_entropy": 7.8018968990308855,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 519897088,
+      "end": 521142272,
+      "kind": "compressed",
+      "mean_entropy": 7.727041974551093,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 521142272,
+      "end": 522518528,
+      "kind": "compressed",
+      "mean_entropy": 7.772560214797383,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 522518528,
+      "end": 527695872,
+      "kind": "compressed",
+      "mean_entropy": 7.772302520871358,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 527695872,
+      "end": 533594112,
+      "kind": "compressed",
+      "mean_entropy": 7.768496511455065,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 533594112,
+      "end": 536018944,
+      "kind": "compressed",
+      "mean_entropy": 7.799359664101476,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 536018944,
+      "end": 544800768,
+      "kind": "compressed",
+      "mean_entropy": 7.7302733891765065,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 544800768,
+      "end": 550764544,
+      "kind": "compressed",
+      "mean_entropy": 7.753558415938824,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 550764544,
+      "end": 560922624,
+      "kind": "compressed",
+      "mean_entropy": 7.777270656385517,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 560922624,
+      "end": 571539456,
+      "kind": "compressed",
+      "mean_entropy": 7.7794203344945245,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 571539456,
+      "end": 579141632,
+      "kind": "compressed",
+      "mean_entropy": 7.76028711775969,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 579141632,
+      "end": 584384512,
+      "kind": "compressed",
+      "mean_entropy": 7.728763141152264,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 584384512,
+      "end": 592576512,
+      "kind": "compressed",
+      "mean_entropy": 7.7845031957720545,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 592576512,
+      "end": 622919680,
+      "kind": "compressed",
+      "mean_entropy": 7.802838701230701,
+      "note": "+absorb-frag"
+    },
+    {
+      "start": 622919680,
+      "end": 632946688,
+      "kind": "compressed",
+      "mean_entropy": 7.811222657338118,
+      "note": ""
+    },
+    {
+      "start": 632946688,
+      "end": 635400192,
+      "kind": "mixed",
+      "mean_entropy": 7.031602186984631,
+      "note": ""
+    }
+  ],
+  "section_count": 73
+}
