@@ -3,50 +3,39 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>OED2 Lookup</title>
+    <title>OED2</title>
     <link rel="stylesheet" href="./src/style.css">
   </head>
   <body>
-    <main class="app-shell">
-      <header class="topbar">
-        <div class="brand">
-          <strong>OED2 Lookup</strong>
-          <span id="metrics"></span>
-        </div>
-        <div class="source-controls">
-          <label class="url-field">
-            <span>DAT</span>
-            <input id="dat-url" type="text" value="/OED2.DAT" spellcheck="false">
-          </label>
-          <label class="file-field">
-            <span>File</span>
-            <input id="dat-file" type="file" accept=".DAT,.dat">
-          </label>
-          <button id="connect" type="button" title="Connect data source">↻</button>
-        </div>
-      </header>
-
-      <section class="lookup-band">
-        <label class="query-field">
-          <span>Look Up</span>
-          <input id="query" type="search" autocomplete="off" spellcheck="false" autofocus>
-        </label>
+    <div id="app" data-mode="home">
+      <main class="search-zone">
+        <a href="#" id="brand" class="brand">OED<sup>2</sup></a>
+        <form class="search-box" role="search" autocomplete="off">
+          <input
+            id="query"
+            type="search"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            autofocus
+            aria-label="Look up a word"
+            aria-autocomplete="list"
+            aria-controls="suggestions"
+          >
+          <ul id="suggestions" role="listbox" hidden></ul>
+        </form>
         <div id="status" class="status" aria-live="polite"></div>
-      </section>
+      </main>
 
-      <section class="workarea">
-        <aside class="results-pane" aria-label="Word list">
-          <ol id="results"></ol>
-        </aside>
-        <article class="article-pane">
-          <header class="article-header">
-            <h1 id="article-title">No article selected</h1>
-            <p id="article-meta"></p>
-          </header>
-          <div id="article" class="article-body"></div>
-        </article>
+      <section class="article-zone" aria-label="Article">
+        <header class="article-header">
+          <h1 id="article-title"></h1>
+          <p id="article-meta"></p>
+        </header>
+        <div id="article" class="article-body"></div>
       </section>
-    </main>
+    </div>
 
     <script type="module" src="./src/main.js"></script>
   </body>

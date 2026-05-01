@@ -1,57 +1,68 @@
 import {
-  BlobRangeSource,
   HttpRangeSource,
   OED2Reader,
-  bodyGeometrySummary,
   normalizeSearch,
   renderArticleRecordsHtml,
 } from "./oed2.js";
 
+const ISO_URL = "/OED2.iso";
+const DAT_OFFSET_IN_ISO = 0xa800;
+
 const state = {
   reader: null,
-  sourceLabel: "",
   lookupToken: 0,
+  loadToken: 0,
   selectedIndex: null,
-  selectedLabel: "",
-  selectedAnnotation: "",
-  selectedTargetLogical: null,
-  pendingSelectedIndex: null,
   pushUrlOnNextWrite: false,
+  suggestions: [],
+  suggestionFocus: -1,
 };
 
 const els = {
-  datUrl: document.querySelector("#dat-url"),
-  datFile: document.querySelector("#dat-file"),
-  connect: document.querySelector("#connect"),
+  app: document.querySelector("#app"),
+  brand: document.querySelector("#brand"),
   query: document.querySelector("#query"),
+  suggestions: document.querySelector("#suggestions"),
   status: document.querySelector("#status"),
-  metrics: document.querySelector("#metrics"),
-  results: document.querySelector("#results"),
-  articlePane: document.querySelector(".article-pane"),
+  searchZone: document.querySelector(".search-zone"),
+  articleZone: document.querySelector(".article-zone"),
   articleTitle: document.querySelector("#article-title"),
   articleMeta: document.querySelector("#article-meta"),
   article: document.querySelector("#article"),
 };
+
+function setMode(mode) {
+  els.app.dataset.mode = mode;
+}
+
+function getMode() {
+  return els.app.dataset.mode;
+}
+
+function setHasArticle(value) {
+  if (value) els.app.dataset.hasArticle = "true";
+  else delete els.app.dataset.hasArticle;
+}
 
 function setStatus(text, tone = "") {
   els.status.textContent = text;
   els.status.dataset.tone = tone;
 }
 
-function setMetrics(text) {
-  els.metrics.textContent = text;
+function clearArticle() {
+  state.selectedIndex = null;
+  els.articleTitle.textContent = "";
+  els.articleMeta.textContent = "";
+  els.article.innerHTML = "";
+  setHasArticle(false);
 }
 
-function clearSelection(clearArticle = false) {
-  state.selectedIndex = null;
-  state.selectedLabel = "";
-  state.selectedAnnotation = "";
-  state.selectedTargetLogical = null;
-  if (clearArticle) {
-    els.articleTitle.textContent = "No article selected";
-    els.articleMeta.textContent = "";
-    els.article.innerHTML = "";
-  }
+function hideSuggestions() {
+  els.suggestions.hidden = true;
+  els.suggestions.innerHTML = "";
+  state.suggestions = [];
+  state.suggestionFocus = -1;
+  els.query.removeAttribute("aria-activedescendant");
 }
 
 function debounce(fn, delay) {
@@ -62,11 +73,41 @@ function debounce(fn, delay) {
   };
 }
 
+function appendStyledSuffix(target, text) {
+  const match = text.match(/^(.*?)\s*(\d+)\s*$/);
+  const ps = document.createElement("span");
+  ps.className = "tag-ps";
+  if (match) {
+    ps.textContent = match[1];
+    const hm = document.createElement("span");
+    hm.className = "tag-hm";
+    hm.textContent = match[2];
+    ps.append(hm);
+  } else {
+    ps.textContent = text;
+  }
+  target.append(ps);
+}
+
+function appendSuggestionContent(target, result) {
+  const head = result.listLabel || result.label || "(blank)";
+  target.append(head);
+  let suffix = result.annotation || "";
+  if (!suffix && result.label && result.label !== head) {
+    if (result.label.toLowerCase().startsWith(head.toLowerCase())) {
+      suffix = result.label.slice(head.length).trim();
+    }
+  }
+  if (suffix) {
+    target.append(" ");
+    appendStyledSuffix(target, suffix);
+  }
+}
+
 function parseUrlState() {
   const params = new URLSearchParams(window.location.search);
   const indexText = params.get("index");
   return {
-    dat: params.get("dat") ?? "",
     query: params.get("q") ?? "",
     index: indexText !== null && /^\d+$/.test(indexText) ? Number(indexText) : null,
   };
@@ -74,17 +115,15 @@ function parseUrlState() {
 
 function writeUrlState() {
   const params = new URLSearchParams();
-  const dat = els.datUrl.value.trim() || "/OED2.DAT";
   const query = els.query.value.trim();
-  params.set("dat", dat);
   if (query) params.set("q", query);
-  if (state.selectedIndex !== null) params.set("index", String(state.selectedIndex));
-  if (state.selectedLabel) params.set("word", state.selectedLabel);
-  if (state.selectedAnnotation) params.set("annotation", state.selectedAnnotation);
-  if (state.selectedTargetLogical !== null) {
-    params.set("target", state.selectedTargetLogical.toString(16));
+  if (getMode() === "article" && state.selectedIndex !== null) {
+    params.set("index", String(state.selectedIndex));
   }
-  const url = `${window.location.pathname}?${params.toString()}`;
+  const queryString = params.toString();
+  const url = queryString
+    ? `${window.location.pathname}?${queryString}`
+    : window.location.pathname;
   if (state.pushUrlOnNextWrite) {
     state.pushUrlOnNextWrite = false;
     window.history.pushState(null, "", url);
@@ -95,7 +134,6 @@ function writeUrlState() {
 
 function lookupUrlFor(query) {
   const params = new URLSearchParams();
-  params.set("dat", els.datUrl.value.trim() || "/OED2.DAT");
   if (query) params.set("q", query);
   return `${window.location.pathname}?${params.toString()}`;
 }
@@ -111,138 +149,105 @@ function hydrateReferenceLinks(root = els.article) {
 }
 
 async function connect() {
-  state.reader = null;
-  state.pushUrlOnNextWrite = false;
-  clearSelection(true);
-  els.results.innerHTML = "";
-
-  const file = els.datFile.files?.[0] ?? null;
-  const url = els.datUrl.value.trim() || "/OED2.DAT";
-  const source = file ? new BlobRangeSource(file) : new HttpRangeSource(url);
-  state.sourceLabel = file ? file.name : url;
-  const reader = new OED2Reader(source);
-
-  setStatus("Opening data source...");
-  const started = performance.now();
+  const reader = new OED2Reader(new HttpRangeSource(ISO_URL, DAT_OFFSET_IN_ISO));
+  setStatus("Opening…");
   try {
-    const [control, list] = await Promise.all([
-      reader.readBodyControl(),
-      reader.readOedList("word"),
-    ]);
+    await Promise.all([reader.readBodyControl(), reader.readOedList("word")]);
     state.reader = reader;
-    const elapsed = Math.round(performance.now() - started);
-    setStatus(`Ready: ${state.sourceLabel}`, "ok");
-    setMetrics(
-      `${list.totalEntries.toLocaleString()} word rows; ` +
-        `${bodyGeometrySummary(control)}; opened in ${elapsed} ms`,
-    );
-    if (els.query.value.trim()) void runLookup({ selectFirst: true });
-    else writeUrlState();
+    setStatus("");
+    return true;
   } catch (error) {
     setStatus(error.message, "error");
-    setMetrics("");
+    return false;
   }
 }
 
-function renderResults(results) {
-  els.results.innerHTML = "";
+function renderSuggestions(results) {
+  state.suggestions = results;
+  state.suggestionFocus = -1;
+  els.query.removeAttribute("aria-activedescendant");
+  els.suggestions.innerHTML = "";
+
   if (!results.length) {
-    const empty = document.createElement("li");
-    empty.className = "empty-row";
-    empty.textContent = "No matches";
-    els.results.append(empty);
+    if (els.query.value.trim() && document.activeElement === els.query) {
+      const empty = document.createElement("li");
+      empty.className = "suggestion-empty";
+      empty.textContent = "No matches";
+      els.suggestions.append(empty);
+      els.suggestions.hidden = false;
+    } else {
+      els.suggestions.hidden = true;
+    }
     return;
   }
 
-  for (const result of results) {
+  for (let i = 0; i < results.length; i += 1) {
+    const result = results[i];
     const item = document.createElement("li");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "result-button";
-    button.dataset.index = String(result.index);
-    if (state.selectedIndex === result.index) button.classList.add("active");
-
-    const label = document.createElement("span");
-    label.className = "result-label";
-    label.textContent = result.label || "(blank)";
-    if (result.annotation) {
-      const annotation = document.createElement("span");
-      annotation.className = "result-annotation";
-      annotation.textContent = ` ${result.annotation}`;
-      label.append(annotation);
-    }
-    const meta = document.createElement("span");
-    meta.className = "result-meta";
-    meta.textContent = `#${result.index.toLocaleString()}`;
-
-    button.append(label, meta);
-    button.addEventListener("click", () => {
-      void selectResult(result.index, result.label, true, result.annotation);
-    });
+    const button = document.createElement("div");
+    button.className = "suggestion";
+    button.id = `sugg-${i}`;
+    button.setAttribute("role", "option");
+    button.dataset.index = String(i);
+    appendSuggestionContent(button, result);
     item.append(button);
-    els.results.append(item);
+    els.suggestions.append(item);
   }
+  els.suggestions.hidden = document.activeElement !== els.query;
 }
 
-function scrollArticleToTarget(target) {
-  if (!target || !els.articlePane) return;
-  const paneRect = els.articlePane.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  const top = els.articlePane.scrollTop + targetRect.top - paneRect.top - 76;
-  els.articlePane.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+function focusSuggestion(index) {
+  const items = els.suggestions.querySelectorAll(".suggestion");
+  for (const item of items) item.removeAttribute("aria-selected");
+  if (index < 0 || index >= items.length) {
+    state.suggestionFocus = -1;
+    els.query.removeAttribute("aria-activedescendant");
+    return;
+  }
+  const target = items[index];
+  target.setAttribute("aria-selected", "true");
+  els.query.setAttribute("aria-activedescendant", target.id);
+  target.scrollIntoView({ block: "nearest" });
+  state.suggestionFocus = index;
 }
 
-async function runLookup({ selectFirst = false } = {}) {
+async function runLookup({ commit = false } = {}) {
   const reader = state.reader;
   const query = els.query.value.trim();
   const token = ++state.lookupToken;
 
-  if (!reader) {
-    setStatus("Connect OED2.DAT first", "error");
-    return;
-  }
+  if (!reader) return;
   if (!normalizeSearch(query)) {
-    clearSelection(true);
-    els.results.innerHTML = "";
-    setStatus(`Ready: ${state.sourceLabel}`, "ok");
-    writeUrlState();
+    hideSuggestions();
+    if (!commit) {
+      clearArticle();
+      setMode("home");
+      writeUrlState();
+    }
+    setStatus("");
     return;
   }
 
-  const started = performance.now();
-  let lastProbe = "";
-  setStatus(`Looking up "${query}"...`);
   try {
-    const results = await reader.lookup(query, 48, ({ blockIndex, blocksRead, entriesScanned, marker }) => {
-      lastProbe =
-        `block ${blockIndex.toLocaleString()} (${blocksRead.toLocaleString()} read), ` +
-        `${entriesScanned.toLocaleString()} keys scanned` +
-        (marker ? `, marker ${marker}` : "");
-      setStatus(lastProbe);
-    });
+    const results = await reader.lookup(query, 50);
     if (token !== state.lookupToken) return;
-    renderResults(results);
-    const elapsed = Math.round(performance.now() - started);
-    setStatus(
-      `${results.length.toLocaleString()} matches in ${elapsed} ms` +
-        (lastProbe ? `; ${lastProbe}` : ""),
-      "ok",
-    );
-    const requestedIndex = state.pendingSelectedIndex;
-    state.pendingSelectedIndex = null;
-    const requested = requestedIndex === null
-      ? null
-      : results.find((result) => result.index === requestedIndex);
-    const selected = requested ?? (selectFirst ? results[0] : null);
-    if (selected) {
-      await selectResult(selected.index, selected.label, true, selected.annotation);
+    renderSuggestions(results);
+    setStatus("");
+
+    const top = results[0];
+    if (commit) {
+      hideSuggestions();
+      if (top) {
+        state.pushUrlOnNextWrite = true;
+        await selectResult(top, { switchToArticle: true });
+      } else {
+        clearArticle();
+        setMode("article");
+        writeUrlState();
+      }
+    } else if (top && getMode() !== "article") {
+      await selectResult(top, { switchToArticle: false });
     } else {
-      const currentStillVisible = (
-        state.selectedIndex !== null &&
-        results.some((result) => result.index === state.selectedIndex)
-      );
-      if (!currentStillVisible) clearSelection(true);
-      renderResults(results);
       writeUrlState();
     }
   } catch (error) {
@@ -251,83 +256,221 @@ async function runLookup({ selectFirst = false } = {}) {
   }
 }
 
-async function selectResult(index, fallbackLabel = "", updateActive = true, annotation = "") {
+function scrollArticleToTarget(target) {
+  if (!target) return;
+  target.scrollIntoView({ block: "start", behavior: "auto" });
+}
+
+async function selectResult(result, { switchToArticle = true } = {}) {
   const reader = state.reader;
   if (!reader) return;
-  state.selectedIndex = index;
-  state.selectedLabel = fallbackLabel || "";
-  state.selectedAnnotation = annotation || "";
-  state.selectedTargetLogical = null;
-  if (updateActive) {
-    for (const button of document.querySelectorAll(".result-button")) {
-      button.classList.toggle("active", Number(button.dataset.index) === index);
-    }
-  }
-  const title = annotation ? `${fallbackLabel} ${annotation}` : fallbackLabel;
-  els.articleTitle.textContent = title || `Word #${index.toLocaleString()}`;
-  els.articleMeta.textContent = "Loading article...";
-  els.article.innerHTML = "";
+  const loadToken = ++state.loadToken;
+  state.selectedIndex = result.index;
 
-  const started = performance.now();
+  if (result.labelHtml) {
+    els.articleTitle.innerHTML = result.labelHtml;
+  } else {
+    els.articleTitle.textContent = `Word #${result.index.toLocaleString()}`;
+  }
+  els.articleMeta.textContent = "";
+  els.article.innerHTML = "";
+  setHasArticle(true);
+
+  if (switchToArticle) {
+    setMode("article");
+    hideSuggestions();
+  }
+
   try {
-    const article = await reader.decodeArticleAtOrdinal(index);
-    const elapsed = Math.round(performance.now() - started);
-    state.selectedTargetLogical = article.targetLogical;
-    els.articleTitle.textContent = title || `Word #${index.toLocaleString()}`;
-    els.articleMeta.textContent =
-      `#${index.toLocaleString()} · ${article.recordCount.toLocaleString()} records · ` +
-      `${article.data.length.toLocaleString()} bytes · ` +
-      `${elapsed} ms`;
+    const article = await reader.decodeArticleAtOrdinal(result.index);
+    if (loadToken !== state.loadToken) return;
     els.article.innerHTML = renderArticleRecordsHtml(article.records, article.targetLogical, {
-      highlightText: fallbackLabel,
+      highlightText: result.label,
     });
     hydrateReferenceLinks();
     writeUrlState();
-    if (article.targetLogical !== null && article.targetLogical !== article.logical) {
+    if (switchToArticle && article.targetLogical !== null && article.targetLogical !== article.logical) {
       const target = document.getElementById(`rec-${article.targetLogical.toString(16)}`);
       window.requestAnimationFrame(() => scrollArticleToTarget(target));
     }
   } catch (error) {
+    if (loadToken !== state.loadToken) return;
     els.articleMeta.textContent = error.message;
   }
 }
 
-els.connect.addEventListener("click", () => void connect());
-els.datFile.addEventListener("change", () => void connect());
-els.datUrl.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") void connect();
+function goHome({ clearQuery = false } = {}) {
+  setMode("home");
+  hideSuggestions();
+  clearArticle();
+  if (clearQuery) els.query.value = "";
+  els.query.focus();
+  writeUrlState();
+  window.scrollTo({ top: 0 });
+}
+
+function commitToArticle() {
+  if (getMode() === "article") return;
+  const before = els.articleZone.getBoundingClientRect().top;
+  setMode("article");
+  const after = els.articleZone.getBoundingClientRect().top;
+  if (before !== after) window.scrollBy(0, after - before);
+  hideSuggestions();
+  state.pushUrlOnNextWrite = true;
+  writeUrlState();
+}
+
+const searchZoneObserver = new IntersectionObserver(
+  ([entry]) => {
+    if (entry.isIntersecting) return;
+    if (getMode() !== "home") return;
+    if (els.app.dataset.hasArticle !== "true") return;
+    commitToArticle();
+  },
+  { threshold: 0 },
+);
+searchZoneObserver.observe(els.searchZone);
+
+els.query.addEventListener("input", debounce(() => void runLookup({ commit: false }), 180));
+
+els.query.addEventListener("focus", () => {
+  if (state.suggestions.length > 0) {
+    els.suggestions.hidden = false;
+  } else if (els.query.value.trim() && state.reader) {
+    void runLookup({ commit: false });
+  }
 });
-els.query.addEventListener("input", debounce(() => void runLookup({ selectFirst: false }), 180));
+
 els.query.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") void runLookup({ selectFirst: true });
+  if (event.key === "Enter") {
+    event.preventDefault();
+    if (state.suggestionFocus >= 0) {
+      const result = state.suggestions[state.suggestionFocus];
+      if (result) {
+        state.pushUrlOnNextWrite = true;
+        void selectResult(result, { switchToArticle: true });
+      }
+    } else {
+      void runLookup({ commit: true });
+    }
+  } else if (event.key === "ArrowDown") {
+    if (state.suggestions.length === 0) return;
+    event.preventDefault();
+    const next = state.suggestionFocus + 1 >= state.suggestions.length
+      ? 0
+      : state.suggestionFocus + 1;
+    focusSuggestion(next);
+  } else if (event.key === "ArrowUp") {
+    if (state.suggestions.length === 0) return;
+    event.preventDefault();
+    const next = state.suggestionFocus <= 0
+      ? state.suggestions.length - 1
+      : state.suggestionFocus - 1;
+    focusSuggestion(next);
+  } else if (event.key === "Escape") {
+    if (!els.suggestions.hidden) {
+      hideSuggestions();
+    } else if (els.query.value || getMode() === "article") {
+      els.query.value = "";
+      goHome({ clearQuery: false });
+    }
+  }
 });
+
+els.suggestions.addEventListener("click", (event) => {
+  const item = event.target.closest(".suggestion");
+  if (!item) return;
+  const index = Number(item.dataset.index);
+  const result = state.suggestions[index];
+  if (!result) return;
+  state.pushUrlOnNextWrite = true;
+  els.query.value = result.listLabel || result.label || els.query.value;
+  void selectResult(result, { switchToArticle: true });
+});
+
+els.suggestions.addEventListener("mousemove", (event) => {
+  const item = event.target.closest(".suggestion");
+  if (!item) return;
+  const index = Number(item.dataset.index);
+  if (Number.isFinite(index) && index !== state.suggestionFocus) focusSuggestion(index);
+});
+
+document.addEventListener("click", (event) => {
+  if (!els.suggestions.contains(event.target) && event.target !== els.query) {
+    if (!els.suggestions.hidden) els.suggestions.hidden = true;
+  }
+});
+
+els.brand.addEventListener("click", (event) => {
+  event.preventDefault();
+  state.pushUrlOnNextWrite = true;
+  goHome({ clearQuery: true });
+});
+
 els.article.addEventListener("click", (event) => {
   const link = event.target.closest(".ref-link");
   if (!link || !els.article.contains(link)) return;
-  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return;
-  }
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) return;
   const ref = link.dataset.ref || link.textContent.replace(/\s+/g, " ").trim();
   if (!ref) return;
   event.preventDefault();
   els.query.value = ref;
-  state.pendingSelectedIndex = null;
   state.pushUrlOnNextWrite = true;
-  void runLookup({ selectFirst: true });
+  void runLookup({ commit: true });
 });
 
 window.addEventListener("popstate", () => {
-  const urlState = parseUrlState();
   state.pushUrlOnNextWrite = false;
-  if (urlState.dat) els.datUrl.value = urlState.dat;
-  els.query.value = urlState.query;
-  state.pendingSelectedIndex = urlState.index;
-  void connect();
+  void hydrateFromUrl({ skipConnect: !!state.reader });
 });
 
-const initialUrlState = parseUrlState();
-if (initialUrlState.dat) els.datUrl.value = initialUrlState.dat;
-if (initialUrlState.query) els.query.value = initialUrlState.query;
-state.pendingSelectedIndex = initialUrlState.index;
+async function hydrateFromUrl({ skipConnect = false } = {}) {
+  const urlState = parseUrlState();
+  els.query.value = urlState.query;
+  if (!skipConnect) {
+    const ok = await connect();
+    if (!ok) return;
+  }
+  if (urlState.index !== null) {
+    setMode("article");
+    const reader = state.reader;
+    if (!reader) return;
+    try {
+      let requested = null;
+      if (urlState.query) {
+        const results = await reader.lookup(urlState.query, 50);
+        requested = results.find((r) => r.index === urlState.index) ?? null;
+      }
+      if (!requested) {
+        const headgroup = await reader.headgroupAtOrdinal(urlState.index);
+        requested = {
+          ...headgroup,
+          listLabel: headgroup.label,
+          label: headgroup.label,
+          annotation: "",
+        };
+      }
+      hideSuggestions();
+      await selectResult(requested, { switchToArticle: true });
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  } else if (urlState.query) {
+    setMode("home");
+    void runLookup({ commit: false });
+  } else {
+    setMode("home");
+    hideSuggestions();
+    clearArticle();
+  }
+  if (getMode() === "home") els.query.focus();
+}
 
-void connect();
+void hydrateFromUrl();

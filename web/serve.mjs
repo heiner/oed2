@@ -1,5 +1,6 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
+import { homedir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,10 +10,10 @@ const repo = resolve(root, "..");
 const port = Number(process.env.PORT ?? 8765);
 const host = process.env.HOST ?? "127.0.0.1";
 
-const datCandidates = [
-  process.env.OED2_DAT,
-  resolve(repo, "OED2.DAT"),
-  "/Volumes/OED2/OED2.DAT",
+const isoCandidates = [
+  process.env.OED2_ISO,
+  resolve(homedir(), "Downloads", "Oxford English Dictionary (Second Edition).iso"),
+  resolve(repo, "Oxford English Dictionary (Second Edition).iso"),
 ].filter(Boolean);
 
 const mimeTypes = {
@@ -20,16 +21,15 @@ const mimeTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
-  ".dat": "application/octet-stream",
-  ".DAT": "application/octet-stream",
+  ".iso": "application/octet-stream",
 };
 
 function safePath(urlPath) {
   let pathname = decodeURIComponent(urlPath);
   if (pathname === "/") pathname = "/index.html";
-  if (pathname === "/OED2.DAT") {
-    const dat = datCandidates.find((candidate) => existsSync(candidate));
-    return dat ? resolve(dat) : null;
+  if (pathname === "/OED2.iso") {
+    const iso = isoCandidates.find((candidate) => existsSync(candidate));
+    return iso ? resolve(iso) : null;
   }
   const resolved = resolve(join(root, pathname));
   if (resolved !== root && !resolved.startsWith(root + sep)) return null;

@@ -294,16 +294,18 @@ const WORD_LIST_CODE_LABELS = {
 };
 
 export class HttpRangeSource {
-  constructor(url) {
+  constructor(url, baseOffset = 0) {
     this.url = url;
+    this.baseOffset = baseOffset;
     this.size = null;
   }
 
   async read(offset, length) {
     if (length <= 0) return new Uint8Array();
-    const end = offset + length - 1;
+    const start = offset + this.baseOffset;
+    const end = start + length - 1;
     const response = await fetch(this.url, {
-      headers: { Range: `bytes=${offset}-${end}` },
+      headers: { Range: `bytes=${start}-${end}` },
     });
     if (response.status !== 206) {
       throw new Error(
@@ -314,7 +316,7 @@ export class HttpRangeSource {
     const range = response.headers.get("content-range");
     if (range) {
       const match = range.match(/\/(\d+)$/);
-      if (match) this.size = Number(match[1]);
+      if (match) this.size = Number(match[1]) - this.baseOffset;
     }
     const buffer = await response.arrayBuffer();
     if (buffer.byteLength !== length) {
@@ -695,11 +697,18 @@ function latin1Text(bytes) {
 }
 
 function renderListKeyText(text) {
-  return text
+  let out = text
     .replace(/&[A-Za-z0-9]+\.?/g, (token) => entityPreview(token))
     .replace(/['\u2019]/g, "\u2019")
     .replace(/\s+/g, " ")
     .trim();
+  let unmatched = 0;
+  for (const ch of out) {
+    if (ch === "(") unmatched += 1;
+    else if (ch === ")" && unmatched > 0) unmatched -= 1;
+  }
+  if (unmatched > 0) out += ")".repeat(unmatched);
+  return out;
 }
 
 function wordListKeyLabel(table, encodedKey) {
@@ -1133,7 +1142,10 @@ export class OED2Reader {
     }
     const data = concatBytes(parts);
     const label = sgmlHeadgroupText(data);
-    const out = { index, label, logical: entryLogical, targetLogical: pointer.logical };
+    const text = bytesToText(data);
+    const hgEnd = text.indexOf("</hg>");
+    const labelHtml = renderSourceHtml(hgEnd >= 0 ? text.slice(0, hgEnd) : text);
+    const out = { index, label, labelHtml, logical: entryLogical, targetLogical: pointer.logical };
     this.headgroupCache.set(index, out);
     return out;
   }
@@ -1237,10 +1249,11 @@ export class OED2Reader {
     let globalStart = list.blockStarts[blockIndex];
     let blocksRead = 0;
     let entriesScanned = 0;
-    const results = [];
+    const candidates = [];
     let done = false;
+    const candidateCap = Math.max(limit * 4, 32);
 
-    while (blockIndex < list.blockCount && results.length < limit && !done) {
+    while (blockIndex < list.blockCount && candidates.length < candidateCap && !done) {
       const entries = await this.decodeOedListBlock(list, blockIndex);
       blocksRead += 1;
       onProbe?.({
@@ -1261,9 +1274,9 @@ export class OED2Reader {
           const headgroupKey = normalizeSearch(headgroup.label);
           const listKey = normalizeSearch(listLabel);
           const label = annotation || !headgroupKey.startsWith(listKey) ? listLabel : headgroup.label;
-          results.push({ ...headgroup, label, annotation, indexKey: entry });
-          if (results.length >= limit) break;
-        } else if (results.length > 0 || compareBytes(entry, key) > 0) {
+          candidates.push({ ...headgroup, listLabel, label, annotation, indexKey: entry });
+          if (candidates.length >= candidateCap) break;
+        } else if (candidates.length > 0 || compareBytes(entry, key) > 0) {
           done = true;
           break;
         }
@@ -1272,7 +1285,23 @@ export class OED2Reader {
       blockIndex += 1;
     }
     onProbe?.({ markerBlock, blockIndex: blockIndex - 1, blocksRead, entriesScanned, done: true });
-    return results;
+
+    const labelsWithPrimary = new Set();
+    for (const c of candidates) {
+      if (c.annotation || c.label !== c.listLabel) labelsWithPrimary.add(c.listLabel);
+    }
+    const seen = new Set();
+    const filtered = [];
+    for (const c of candidates) {
+      const isPrimary = c.annotation || c.label !== c.listLabel;
+      if (!isPrimary && labelsWithPrimary.has(c.listLabel)) continue;
+      const dedupKey = `${c.listLabel}${c.label}${c.annotation}`;
+      if (seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
+      filtered.push(c);
+      if (filtered.length >= limit) break;
+    }
+    return filtered;
   }
 }
 
@@ -1393,6 +1422,34 @@ function protectInlinePunctuation(text) {
     .replace(/([\])])/g, "\u2060$1");
 }
 
+function buildNormalizedMap(text) {
+  const lower = text.toLowerCase();
+  let normalized = "";
+  const positions = [];
+  let lastWasSep = false;
+  let lastNonSepEnd = 0;
+  for (let i = 0; i < lower.length; i += 1) {
+    const c = lower.charCodeAt(i);
+    const isAlnum = (c >= 0x61 && c <= 0x7a) || (c >= 0x30 && c <= 0x39);
+    if (isAlnum) {
+      normalized += lower[i];
+      positions.push(i);
+      lastWasSep = false;
+      lastNonSepEnd = i + 1;
+    } else if (!lastWasSep && normalized.length > 0) {
+      normalized += " ";
+      positions.push(i);
+      lastWasSep = true;
+    }
+  }
+  while (normalized.endsWith(" ")) {
+    normalized = normalized.slice(0, -1);
+    positions.pop();
+  }
+  positions.push(lastNonSepEnd);
+  return { normalized, positions };
+}
+
 function emitText(out, text, highlightText = "") {
   const normalized = text.replace(/\s+/g, " ");
   keepEdgePunctuationWithPreviousWord(out, normalized);
@@ -1401,17 +1458,25 @@ function emitText(out, text, highlightText = "") {
     return;
   }
 
+  const { normalized: hay, positions } = buildNormalizedMap(normalized);
   const needle = highlightText.toLowerCase();
-  const lower = normalized.toLowerCase();
-  let pos = 0;
-  for (;;) {
-    const hit = lower.indexOf(needle, pos);
+  let searchPos = 0;
+  let lastEmitted = 0;
+  while (needle.length > 0) {
+    const hit = hay.indexOf(needle, searchPos);
     if (hit < 0) break;
-    if (hit > pos) out.push(escapeHtml(protectInlinePunctuation(normalized.slice(pos, hit))));
-    out.push(`<mark class="query-hit">${escapeHtml(protectInlinePunctuation(normalized.slice(hit, hit + needle.length)))}</mark>`);
-    pos = hit + needle.length;
+    const start = positions[hit];
+    const end = positions[hit + needle.length];
+    if (start > lastEmitted) {
+      out.push(escapeHtml(protectInlinePunctuation(normalized.slice(lastEmitted, start))));
+    }
+    out.push(`<mark class="query-hit">${escapeHtml(protectInlinePunctuation(normalized.slice(start, end)))}</mark>`);
+    lastEmitted = end;
+    searchPos = hit + needle.length;
   }
-  if (pos < normalized.length) out.push(escapeHtml(protectInlinePunctuation(normalized.slice(pos))));
+  if (lastEmitted < normalized.length) {
+    out.push(escapeHtml(protectInlinePunctuation(normalized.slice(lastEmitted))));
+  }
 }
 
 function renderSourceHtml(source, targetLogical = null, options = {}) {
@@ -1419,7 +1484,7 @@ function renderSourceHtml(source, targetLogical = null, options = {}) {
   const stack = [];
   let lastWasBreak = false;
   const highlightableTags = new Set(["hw", "bl"]);
-  const highlightText = normalizeSearch(options.highlightText ?? "").replace(/\s+/g, "");
+  const highlightText = normalizeSearch(options.highlightText ?? "");
   const isGreekContext = () => stack.some((item) => stackName(item) === "gk");
   const emit = (text) => {
     if (lastWasBreak) {
@@ -1568,9 +1633,13 @@ export function renderArticleHtml(data) {
 }
 
 export function renderArticleRecordsHtml(records, targetLogical = null, options = {}) {
-  const source = records.map((record) => (
-    `\ue000${record.logicalOffset.toString(16)}\ue001${bytesToText(record.data)}`
-  )).join("");
+  const source = records.map((record) => {
+    const text = bytesToText(record.data);
+    if (record.logicalOffset === targetLogical) {
+      return `\ue000${record.logicalOffset.toString(16)}\ue001${text}`;
+    }
+    return text;
+  }).join("");
   const target = targetLogical === null ? null : targetLogical.toString(16);
   return renderSourceHtml(source, target, options);
 }
