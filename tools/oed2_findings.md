@@ -163,13 +163,13 @@ relative of the PC-Wörterbuch `Lista` structure:
   version          number of 0x800 pages before block data
   block_count
   block_size       observed 0x800
-  entry_base       base used by the cumulative-delta formula
+  max_key_bytes    allocated current-key/display-key buffer length
   fragment_bytes   NUL-terminated fragment table length
   marker_bytes     LF-terminated per-block marker table length
 
 fragment_bytes of NUL-terminated fragments
-block_count signed big-endian 32-bit cumulative deltas
-one extra big-endian 32-bit value (role still unknown)
+one big-endian 32-bit count-base value
+block_count signed big-endian 32-bit cumulative/count deltas
 block_count first-fragment-skip bytes
 marker_bytes of LF-terminated block markers
 padding to version * block_size
@@ -181,7 +181,7 @@ Entry counts use the same family of formula as `.AND`, widened to signed
 
 ```
 count[0] = cumulative[0]
-count[n] = cumulative[n] - cumulative[n-1] + entry_base
+count[n] = cumulative[n] - cumulative[n-1] + count_base
 ```
 
 The old `Lista` nibble-prefix block decoder works after adapting the
@@ -198,27 +198,101 @@ Decoded list summaries:
 
 | List | Control | Blocks | Entries (delta-derived) | Block data range |
 |---|---:|---:|---:|---|
-| word | `0x143f3000` | 1039 | ~323,038 | `0x143f7000..0x145fe800` |
-| phrase | `0x1499f000` | 592 | ~127,674 | `0x149a1800..0x14ac9800` |
-| variant | `0x14c18800` | 983 | ~269,904 | `0x14c1c800..0x14e08000` |
-| greek | `0x14fdb800` | 236 | ~45,919 | `0x14fdd800..0x15053800` |
-| phonetics | `0x25bb1000` | 1155 | ~159,391 | `0x25bb5800..EOF` |
-| cited1 | `0x13cff800` | 2 | ~470 | `0x13d00000..0x13d01000` |
-| cited2 | `0x13a1b000` | 470 | ~134,550 | `0x13a1d000..0x13b08000` |
-| work1 | `0x12dee800` | 144 | ~14,476 | `0x12df0000..0x12e38000` |
-| work2 | `0x131e8800` | 1078 | ~264,448 | `0x131ed000..0x13408000` |
+| word | `0x143f3000` | 1039 | 473,257 | `0x143f7000..0x145fe800` |
+| phrase | `0x1499f000` | 592 | 169,429 | `0x149a1800..0x14ac9800` |
+| variant | `0x14c18800` | 983 | 221,640 | `0x14c1c800..0x14e08000` |
+| greek | `0x14fdb800` | 236 | 40,650 | `0x14fdd800..0x15053800` |
+| phonetics | `0x25bb1000` | 1155 | 152,418 | `0x25bb5800..0x25df7000` |
+| cited1 | `0x13cff800` | 2 | 524 | `0x13d00000..0x13d01000` |
+| cited2 | `0x13a1b000` | 470 | 228,816 | `0x13a1d000..0x13b08000` |
+| work1 | `0x12dee800` | 144 | 77,050 | `0x12df0000..0x12e38000` |
+| work2 | `0x131e8800` | 1078 | 237,332 | `0x131ed000..0x13408000` |
 
-Some later cited/work blocks produce a small number of negative
-delta-derived counts under the current formula, so those totals are
-still marked approximate.  The main word/phrase/variant/greek/phonetics
-lists decode cleanly with non-negative counts.
+All known `0x0ffa` lists now have non-negative per-block counts under
+this formula.
 
 This is the first complete inherited-format win in OED2.DAT: a large
 part of the original reader's navigation/search lists now has a concrete
 parser, not just offsets and entropy bands.  The decoded entries are
-still OED collation/notation keys rather than final display strings;
-control bytes such as `0x02`, `0x03`, and compact suffix fragments must
-be mapped through the OED-specific collation/display layer next.
+still OED collation/notation keys.  `seg5:4c40` now expands the visible
+text portion, including Table-A records such as the encoded space in
+`ABSOLUTEADDRESS`, but the two-byte hidden prefix still needs the final
+UI label map.
+
+## Original list lookup path
+
+The NE relocation parser now expands relocation chains.  This fixed
+several misleading far-call annotations: for example, segment 4 calls
+`seg3:4f70` from `seg4:2c1c` and `seg4:333c`, even though the raw
+segment words in the instruction stream look unrelated before relocation
+chain expansion.
+
+The `0x0ffa` list object parse had one important off-by-four error in
+the Python reader.  `seg5:3494` reads the fragment area, then a 32-bit
+count base into `obj+0x250/0x252`, then the per-block 32-bit count table.
+The Python reader used to treat that first count-base value as the first
+table entry.  After matching the assembly order, the word list has
+473,257 rows, and decoded keys are normal OED collation keys:
+`ABSOLUTE<03>:a<03>...` at index 1000, `ABSOLUTELY<03>Ba<03>...` at
+index 1006, etc.
+
+`seg5:2d4c` is the exact-list wrapper:
+
+1. lock the `0x0ffa` list object;
+2. encode the caller's query through `seg5:4688` using the attached
+   Table-A object;
+3. call `seg5:528c` to find an exact key.
+
+`seg5:528c` uses:
+
+- `seg5:53bc`: choose a block with the original marker guide;
+- `seg5:54ee`: scan forward until the current decoded key has the query
+  as a prefix;
+- `seg7:6d9c`: final exact `strcmp`.
+
+The visible Word Look-up dialog follows a related but not identical path
+in `seg3:35f8`.  In word mode it:
+
+1. skips the two leading bytes in the source UI buffer;
+2. writes default hidden bytes `0x30 0x61` (`"0a"`);
+3. appends the visible query text;
+4. calls `seg5:4688`;
+5. copies only bytes greater than `0x03` from the encoded result back into
+   the active query buffer, stopping at the first control byte;
+6. calls `seg5:306c`, which performs the marker-guide block choice and
+   accepts the first decoded list key with that primary prefix.
+
+So the typed word `absolute` becomes:
+
+```
+full Table-A key: ABSOLUTE<03>0a<03><03><03><03><03><03><03><03>
+UI primary key:  ABSOLUTE
+```
+
+The Python probe now mirrors both the exact helper and the UI primary
+lookup without a Python-side global binary search:
+
+```
+python3 tools/oed2_reader.py /Volumes/OED2/OED2.DAT tablea word --struct --encode-exe 0aabsolute
+python3 tools/oed2_reader.py /Volumes/OED2/OED2.DAT oedlookup word absolute --ui-word-primary
+```
+
+The second command chooses marker block 1 (`ABJUN`), scans 494 decoded
+entries, and returns index 1000:
+
+```
+candidate=ABSOLUTE<03>:a<03><03><03><03><03><03><03><03>
+display-key=:aabsolute
+pointer=(803,126854) body-logical=0x0001ef86
+```
+
+`seg5:4c40` is the inverse display expander.  For word keys it copies the
+two hidden bytes after the separator, then uses the secondary stream to
+lowercase/uppercase primary bytes or expand Table-A records.  The Python
+decoder now shows `ABSOLUTE<03>:a...` as `:aabsolute`, and
+`ABSOLUTEADDRESS<03>1a...ma...` as `1aabsolute address`; the two-byte
+prefix still needs the UI label map so it can be rendered as
+`absolute a.`.
 
 The second anchor in each main list family is now strongly identified as
 a big-endian 8-byte pointer table.  `tools/oed2_reader.py ptrs` reads
@@ -243,20 +317,16 @@ Current table-B evidence:
 
 | List | Table-B | Records scanned | `b` in body blocks | Sentinels |
 |---|---:|---:|---:|---:|
-| word | `0x14602800` | 323,038 | 323,038 | 0 |
-| phrase | `0x14acd800` | 127,674 | 127,674 | 0 |
-| variant | `0x14e19800` | 269,904 | 231,484 | 346 |
-| greek | `0x15054800` | 45,919 | 41,147 | 6 |
-| phonetics | `0x152ec000` | 159,391 | 153,245 | 0 |
+| word | `0x14602800` | 473,257 | 473,257 | 0 |
+| phrase | `0x14acd800` | 169,429 | 169,429 | 0 |
+| variant | `0x14e19800` | 221,640 | 221,640 | 0 |
+| greek | `0x15054800` | 40,650 | 40,650 | 0 |
+| phonetics | `0x152ec000` | 152,418 | 152,418 | 0 |
 
-For `word` and `phrase`, `b` is now confirmed as a body logical offset:
+For these main lists, `b` is now confirmed as a body logical offset:
 after switching the body-block reader from heuristic scanning to the
 original body-control header, every row lands in a body block with no
 between-block misses.
-`variant`, `greek`, and `phonetics` contain more sparse rows and some
-`0xffffffff`-style sentinel values, so their table rows probably include
-empty variant forms or non-article targets as well as direct article
-pointers.
 
 The `--snippets` view deliberately labels previews as `raw~...`: it
 shows bytes near the same relative position in the stored payload only.
@@ -593,6 +663,14 @@ This is useful for terminal inspection, but the screenshot makes clear
 that full reproduction still requires translating the exact
 tag-to-font/color state machine around `seg1:b74e` and the segment-2
 display style routines.
+
+The static web renderer now applies the same evidence to the browser
+path.  It renders `<ph>fVk</ph>` as `fʌk`, styles
+`<s4 num=1><gr>intr.</gr>` as a distinctive sense number and grammar
+label, starts quotation blocks on their own lines, turns `&a.1503` into
+`a1503`, styles `<a>Dunbar</a>` as an author token, and keeps subentry
+lookups such as `fucking` in article context while scrolling to the
+target logical record.
 
 Example from `bodyrec 0x2095 --count 8`:
 
@@ -1115,15 +1193,15 @@ target.
   1. Translate the SGML/entity renderer from `OED.EXE`, especially
      `seg1:3e0c`, `seg1:41c4`, and `seg1:43ac`, so `&...` names map to
      the same output bytes and font/style codes as Win 3.1.
-  2. Finish Table-A inversion so compact list keys render as the
-     original displayed headwords, not just as decoded collation bytes.
+  2. Finish the word-list hidden-prefix label map so `:aabsolute` and
+     related keys render with the exact original POS/class suffixes.
   3. Decode the `0xffb` sparse index family around `0x15512800` and
      `0x155b2800`; headers/page geometry are parsed, page semantics are
      still open.
   4. Explain Section B.  Its entropy is high, but it lacks article-tag
      density.  It is probably search/index data rather than bodies.
-  5. Explain sparse/non-body rows in variant, Greek, and phonetics
-     table-B data.
+  5. Explain the first 32-bit word in table-B rows and the duplicate /
+     multi-row semantics across word, Greek, and phonetics lists.
   6. Revisit the 66-LONG file header and the side table at `0x800` after
      the remaining list/search indexes are understood.
 

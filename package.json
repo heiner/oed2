@@ -1,0 +1,10 @@
+{
+  "name": "oed2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:web": "node web/test_lookup.mjs",
+    "serve": "node web/serve.mjs"
+  }
+}

@@ -155,8 +155,60 @@ ENTITY_SUFFIX_MARKS = {
     'hacek': '\u030c',
     'dot': '\u0307',
     'dotab': '\u0307',
+    'ced': '\u0327',
+    'hook': '\u0309',
+    'ang': '\u030a',
 }
 ENTITY_NAME_UNICODE = {
+    'Alpha': '\u0391',
+    'Beta': '\u0392',
+    'Gamma': '\u0393',
+    'Delta': '\u0394',
+    'Epsilon': '\u0395',
+    'Zeta': '\u0396',
+    'Eta': '\u0397',
+    'Theta': '\u0398',
+    'Iota': '\u0399',
+    'Kappa': '\u039a',
+    'Lambda': '\u039b',
+    'Mu': '\u039c',
+    'Nu': '\u039d',
+    'Xi': '\u039e',
+    'Omicron': '\u039f',
+    'Pi': '\u03a0',
+    'Rho': '\u03a1',
+    'Sigma': '\u03a3',
+    'Tau': '\u03a4',
+    'Upsilon': '\u03a5',
+    'Phi': '\u03a6',
+    'Chi': '\u03a7',
+    'Psi': '\u03a8',
+    'Omega': '\u03a9',
+    'alpha': '\u03b1',
+    'beta': '\u03b2',
+    'gamma': '\u03b3',
+    'delta': '\u03b4',
+    'epsilon': '\u03b5',
+    'zeta': '\u03b6',
+    'eta': '\u03b7',
+    'theta': '\u03b8',
+    'iota': '\u03b9',
+    'kappa': '\u03ba',
+    'lambda': '\u03bb',
+    'mu': '\u03bc',
+    'nu': '\u03bd',
+    'xi': '\u03be',
+    'omicron': '\u03bf',
+    'pi': '\u03c0',
+    'rho': '\u03c1',
+    'sigma': '\u03c3',
+    'Csigma': '\u03c2',
+    'tau': '\u03c4',
+    'upsilon': '\u03c5',
+    'phi': '\u03c6',
+    'chi': '\u03c7',
+    'psi': '\u03c8',
+    'omega': '\u03c9',
     'th': '\u00fe',
     'Th': '\u00de',
     'edh': '\u00f0',
@@ -167,6 +219,10 @@ ENTITY_NAME_UNICODE = {
     'Oe': '\u0152',
     'ygh': '\u021d',
     'Ygh': '\u021c',
+    'schwa': '\u0259',
+    'longs': '\u017f',
+    'eszett': '\u00df',
+    'wyn': '\u01bf',
     'oq': '\u2018',
     'cq': '\u2019',
     'oqq': '\u201c',
@@ -177,15 +233,54 @@ ENTITY_NAME_UNICODE = {
     'em': '\u2014',
     'emem': '\u2e3a',
     'dd': '..',
+    'ddd': '...',
     'es': ' ',
     'ts': ' ',
     'amp': '&',
+    'and': 'and',
     'lt': '<',
     'gt': '>',
     'times': '\u00d7',
     'sect': '\u00a7',
+    'page': '\u00b6',
+    'para': '\u00b6',
+    'dag': '\u2020',
+    'ddag': '\u2021',
+    'deg': '\u00b0',
+    'min': '\u2212',
+    'pm': '\u00b1',
+    'cent': '\u00a2',
     'dollar': '$',
     'pstlg': '\u00a3',
+    'dubh': '~',
+    'swing': '~',
+    'vb': '|',
+    'at': '@',
+    'sqrt': '\u221a',
+    'infin': '\u221e',
+    'ident': '\u2261',
+    'prop': '\u221d',
+    'elem': '\u2208',
+    'union': '\u222a',
+    'integ': '\u222b',
+    'le': '\u2264',
+    'ge': '\u2265',
+    'neq': '\u2260',
+    'div': '\u00f7',
+    'logicor': '\u2228',
+    'logicand': '\u2227',
+    'rar': '\u2192',
+    'ang': '\u2220',
+    'flat': '\u266d',
+    'natural': '\u266e',
+    'sharp': '\u266f',
+    'male': '\u2642',
+    'female': '\u2640',
+    'tri': '\u25b3',
+    'square': '\u25a1',
+    'star': '\u2606',
+    'a': 'a',
+    'c': 'c',
 }
 HEADGROUP_OPEN_TAGS = (b'<hw', b'<hm>', b'<ps>')
 HEADGROUP_CLOSE_TAGS = (b'</hw', b'</hm>', b'</ps>')
@@ -211,6 +306,7 @@ PHONETIC_CHAR_REPLACEMENTS = {
     'E': 'ɛ',
     'A': 'ɑ',
     'O': 'ɒ',
+    'V': 'ʌ',
     'N': 'ŋ',
     'S': 'ʃ',
     'Z': 'ʒ',
@@ -1073,7 +1169,7 @@ class OEDListHeader:
     version: int
     block_count: int
     block_size: int
-    entry_base: int
+    max_key_bytes: int
     fragment_bytes: int
     marker_bytes: int
 
@@ -1123,7 +1219,7 @@ class OEDListControl:
     header: OEDListHeader
     fragments: list[bytes]
     cumulative_deltas: list[int]
-    extra_value: int
+    count_base: int
     first_fragment_skip: bytes
     markers: list[bytes]
     path: str
@@ -1156,7 +1252,7 @@ class OEDListControl:
         return (
             self.cumulative_deltas[index]
             - self.cumulative_deltas[index - 1]
-            + self.header.entry_base
+            + self.count_base
         )
 
     def decode_block(self, index: int, limit: int | None = None) -> list[bytes]:
@@ -1210,12 +1306,477 @@ class OEDListControl:
 
 
 @dataclass(frozen=True)
+class OEDListLookupResult:
+    key: bytes
+    marker_block: int
+    index: int | None
+    entry: bytes | None
+    blocks_read: int
+    entries_scanned: int
+    reason: str
+
+
+def oedlist_marker_block(control: OEDListControl, key: bytes) -> int:
+    """Block choice from OED.EXE seg5:53bc."""
+    lo = 0
+    hi = control.header.block_count - 1
+    selected = 0
+    while hi > selected:
+        mid = (selected + hi + 1) // 2
+        marker = control.markers[mid]
+        if key == marker:
+            hi = mid
+            selected = mid
+        elif key < marker:
+            hi = mid - 1
+        else:
+            selected = mid
+    return selected
+
+
+def oedlist_original_lookup(control: OEDListControl, key: bytes,
+                            scan_limit: int | None = None,
+                            require_exact: bool = True) -> OEDListLookupResult:
+    """Exact lookup shape from seg5:528c/53bc/54ee.
+
+    This intentionally uses the original marker guide and forward scan,
+    rather than a Python-wide binary search over decoded entries.
+    """
+    block_index = oedlist_marker_block(control, key)
+    blocks_read = 0
+    entries_scanned = 0
+    global_start = control.start_index_for_block(block_index)
+    key_len = len(key)
+
+    while block_index < control.header.block_count:
+        entries = control.decode_block(block_index)
+        blocks_read += 1
+        for local_index, entry in enumerate(entries):
+            if scan_limit is not None and entries_scanned >= scan_limit:
+                return OEDListLookupResult(
+                    key, oedlist_marker_block(control, key), None, None,
+                    blocks_read, entries_scanned, 'scan-limit',
+                )
+            entries_scanned += 1
+            if len(entry) >= key_len and entry[:key_len] == key:
+                index = global_start + local_index
+                if entry == key:
+                    return OEDListLookupResult(
+                        key, oedlist_marker_block(control, key), index, entry,
+                        blocks_read, entries_scanned, 'exact',
+                    )
+                if not require_exact:
+                    return OEDListLookupResult(
+                        key, oedlist_marker_block(control, key), index, entry,
+                        blocks_read, entries_scanned, 'prefix',
+                    )
+                return OEDListLookupResult(
+                    key, oedlist_marker_block(control, key), None, entry,
+                    blocks_read, entries_scanned, 'prefix-only',
+                )
+        block_index += 1
+        global_start += len(entries)
+
+    return OEDListLookupResult(
+        key, oedlist_marker_block(control, key), None, None,
+        blocks_read, entries_scanned, 'eof',
+    )
+
+
+@dataclass(frozen=True)
 class TableAMapRecord:
     source: str
     normalized: str
     code_text: str
     code_value: int | None
     offset: int
+
+
+@dataclass(frozen=True)
+class TableAStructRecord:
+    index: int
+    source: bytes
+    primary: bytes
+    secondary: bytes
+    offsets: tuple[int, int, int, int]
+
+
+@dataclass(frozen=True)
+class TableAStruct:
+    header: tuple[int, int, int, int]
+    offsets: tuple[int, ...]
+    index_map: tuple[int, ...]
+    pool: bytes
+
+    @property
+    def record_count(self) -> int:
+        return self.header[0]
+
+    @property
+    def entity_count(self) -> int:
+        return self.header[1]
+
+    def record(self, index: int) -> TableAStructRecord:
+        if not 0 <= index < self.record_count:
+            raise IndexError(index)
+        pos = index * 3
+        a, b, c, d = self.offsets[pos:pos + 4]
+        return TableAStructRecord(
+            index=index,
+            source=self.pool[a:b],
+            primary=self.pool[b:c],
+            secondary=self.pool[c:d],
+            offsets=(a, b, c, d),
+        )
+
+    def direct_record_index(self, byte: int) -> int | None:
+        if not 0 <= byte < 0x100:
+            raise ValueError(byte)
+        value = self.index_map[byte]
+        return None if value == 0xffff else value
+
+    def direct_record(self, byte: int) -> TableAStructRecord | None:
+        index = self.direct_record_index(byte)
+        return None if index is None else self.record(index)
+
+    def find_entity_record_index(self, token: bytes) -> int | None:
+        """Mirror the EXE's entity-name binary search.
+
+        ``seg5:4688`` searches the index-map window beginning at 0x100.
+        Each entry points to a record whose source slice is compared with
+        the input through the terminating dot.
+        """
+        lo = 0x100
+        hi = 0x100 + self.entity_count
+        while lo < hi:
+            mid = (lo + hi) // 2
+            record_index = self.index_map[mid]
+            record = self.record(record_index)
+            cmp = compare_entity_token(token, record.source)
+            if cmp < 0:
+                hi = mid
+            elif cmp > 0:
+                lo = mid + 1
+            else:
+                return record_index
+        return None
+
+    def find_source_record_index(self, token: bytes) -> int | None:
+        if token.startswith(b'&'):
+            return self.find_entity_record_index(token)
+        if len(token) == 1:
+            return self.direct_record_index(token[0])
+        for index in range(self.record_count):
+            if self.record(index).source == token:
+                return index
+        return None
+
+
+def parse_tablea_struct(raw: bytes) -> TableAStruct:
+    if len(raw) < 8:
+        raise ValueError('short Table-A data')
+    header = struct.unpack_from('>4H', raw, 0)
+    record_count, entity_count, offset_count, pool_size = header
+    if offset_count != record_count * 3:
+        raise ValueError(
+            f'unexpected Table-A offset count {offset_count}; '
+            f'wanted {record_count * 3}'
+        )
+    pos = 8
+    offsets_end = pos + (offset_count + 1) * 2
+    index_count = entity_count + 0x100
+    index_end = offsets_end + index_count * 2
+    pool_end = index_end + pool_size
+    if len(raw) < pool_end:
+        raise ValueError(
+            f'short Table-A data: need 0x{pool_end:x}, got 0x{len(raw):x}'
+        )
+    offsets = struct.unpack_from(f'>{offset_count + 1}H', raw, pos)
+    index_map = struct.unpack_from(f'>{index_count}H', raw, offsets_end)
+    pool = raw[index_end:pool_end]
+    if not 0 <= offsets[-1] <= pool_size:
+        raise ValueError(
+            f'Table-A pool sentinel is {offsets[-1]}, outside pool {pool_size}'
+        )
+    return TableAStruct(
+        header=header,
+        offsets=offsets,
+        index_map=index_map,
+        pool=pool,
+    )
+
+
+def compare_entity_token(left: bytes, right: bytes) -> int:
+    """Compare entity names the way ``seg5:45fc`` does.
+
+    The routine walks byte-for-byte and stops with equality only after a
+    matching dot.  Otherwise it returns the unsigned byte difference at
+    the first mismatch.
+    """
+    pos = 0
+    while True:
+        lb = left[pos] if pos < len(left) else 0
+        rb = right[pos] if pos < len(right) else 0
+        if lb != rb:
+            return lb - rb
+        if lb == ord('.'):
+            return 0
+        pos += 1
+
+
+def tablea_rank_value(text: bytes) -> int | None:
+    if len(text) != 2:
+        return None
+    value = 0
+    for b in text:
+        if ord('0') <= b <= ord('9'):
+            digit = b - ord('0')
+        elif ord('a') <= b <= ord('z'):
+            digit = b - ord('a') + 10
+        else:
+            return None
+        value = value * 36 + digit
+    return value
+
+
+def tablea_rank_code_value(first: int, second: int) -> int:
+    """Inverse of the EXE's two-byte rank code reader at seg5:463e."""
+    def one(byte: int) -> int:
+        cls = tablea_exe_char_class(byte)
+        return byte - 0x57 if cls & 0x02 else byte - 0x30
+
+    return 36 * one(first) + one(second)
+
+
+def tablea_exe_char_class(byte: int) -> int:
+    """Bits from OED.EXE data table 0x7395 needed by seg5:4688."""
+    if ord('A') <= byte <= ord('Z'):
+        return 0x01
+    if ord('a') <= byte <= ord('z'):
+        return 0x02
+    if ord('0') <= byte <= ord('9'):
+        return 0x84
+    if byte in b'\t\n\r()':
+        return 0x28
+    if byte == ord(' '):
+        return 0x48
+    if 0x20 <= byte < 0x7f:
+        return 0x10
+    return 0x00
+
+
+def tablea_copy_primary(table: TableAStruct, record_index: int,
+                        out: bytearray) -> None:
+    record = table.record(record_index)
+    out.extend(record.primary)
+
+
+def tablea_copy_secondary(table: TableAStruct, record_index: int,
+                          out: bytearray) -> None:
+    record = table.record(record_index)
+    out.extend(record.secondary)
+
+
+def tablea_find_entity_and_dot(table: TableAStruct, data: bytes,
+                               pos: int) -> tuple[int | None, int]:
+    dot = data.find(b'.', pos + 1)
+    if dot < 0:
+        return None, len(data)
+    return table.find_entity_record_index(data[pos:dot + 1]), dot
+
+
+def encode_tablea_exe(table: TableAStruct, text: str,
+                      mode: int = 0x0100, mode_hi: int = 0) -> bytes:
+    """Encode a query with the OED.EXE seg5:4688 control flow.
+
+    The word-list mode treats the first two bytes as a POS/list prefix and
+    appends them to the secondary stream before processing the visible text.
+    """
+    data = text.encode('latin-1', 'replace')
+    primary = bytearray()
+    secondary = bytearray()
+    pos = 0
+    lower_marker = 0x03
+    upper_marker = 0x02
+
+    if mode == 0x0100 and mode_hi == 0 and data:
+        secondary.append(data[0])
+        pos = 1
+        if pos < len(data):
+            secondary.append(data[pos])
+            pos += 1
+
+    while pos < len(data) and data[pos] != 0:
+        b = data[pos]
+
+        # The branch at 0x4750 handles tag-like text by adding only
+        # secondary weights until NUL.  It matters for phrase/Greek probes.
+        if b in (ord('('), ord('<')):
+            balanced_paren = False
+            if b == ord('('):
+                close = data.find(b')', pos + 1)
+                balanced_paren = close >= 0
+            if not balanced_paren:
+                while pos < len(data) and data[pos] != 0:
+                    b = data[pos]
+                    record_index: int | None
+                    if b == ord('&'):
+                        record_index, dot = tablea_find_entity_and_dot(
+                            table, data, pos,
+                        )
+                        pos = dot
+                    else:
+                        record_index = table.direct_record_index(b)
+                    if record_index is not None:
+                        tablea_copy_secondary(table, record_index, secondary)
+                    if pos >= len(data) or data[pos] == 0:
+                        break
+                    pos += 1
+                continue
+
+        if b == ord('&'):
+            record_index, dot = tablea_find_entity_and_dot(table, data, pos)
+            pos = dot
+            if record_index is not None:
+                tablea_copy_primary(table, record_index, primary)
+                tablea_copy_secondary(table, record_index, secondary)
+            if pos >= len(data) or data[pos] == 0:
+                continue
+            pos += 1
+            continue
+
+        cls = tablea_exe_char_class(b)
+        if (cls & 0x03) and not (mode in (0x0103, 0x0104) and mode_hi == 0):
+            if cls & 0x01:
+                primary.append(b)
+                secondary.append(upper_marker)
+            else:
+                primary.append((b - 0x20) & 0xff)
+                secondary.append(lower_marker)
+            pos += 1
+            continue
+
+        record_index = table.direct_record_index(b)
+        if record_index is not None:
+            tablea_copy_primary(table, record_index, primary)
+            tablea_copy_secondary(table, record_index, secondary)
+        pos += 1
+
+    primary.append(lower_marker)
+    primary.extend(secondary)
+    return bytes(primary)
+
+
+def tablea_primary_prefix(encoded: bytes) -> bytes:
+    """Return the primary bytes copied by the word lookup at seg3:3737."""
+    out = bytearray()
+    for b in encoded:
+        if b <= 0x03:
+            break
+        out.append(b)
+    return bytes(out)
+
+
+def decode_tablea_exe(table: TableAStruct, encoded: bytes,
+                      mode: int = 0x0100, mode_hi: int = 0) -> bytes:
+    """Expand a Table-A encoded key using the OED.EXE seg5:4c40 shape.
+
+    Word-list keys keep a two-byte hidden class/POS prefix immediately after
+    the primary separator.  The remaining secondary stream says whether each
+    primary byte should be lowercased, kept uppercase, or expanded through a
+    Table-A record.
+    """
+    separator = 0x03
+    upper_marker = 0x02
+    split = encoded.find(bytes([separator]))
+    if split < 0:
+        return encoded.rstrip(b'\x00')
+
+    primary_pos = 0
+    secondary_pos = split
+    out = bytearray()
+
+    if mode == 0x0100 and mode_hi == 0:
+        if secondary_pos + 1 < len(encoded):
+            out.append(encoded[secondary_pos + 1])
+        if secondary_pos + 2 < len(encoded):
+            out.append(encoded[secondary_pos + 2])
+        secondary_pos += 2
+
+    while secondary_pos < len(encoded) and encoded[secondary_pos] != 0:
+        secondary_pos += 1
+        if secondary_pos >= len(encoded):
+            break
+        marker = encoded[secondary_pos]
+
+        if marker in (separator, 0):
+            if primary_pos < split:
+                out.append((encoded[primary_pos] + 0x20) & 0xff)
+                primary_pos += 1
+            if marker == 0:
+                break
+            continue
+
+        if marker == upper_marker:
+            if primary_pos < split:
+                out.append(encoded[primary_pos])
+                primary_pos += 1
+            continue
+
+        if secondary_pos + 1 >= len(encoded):
+            break
+        record_index = tablea_rank_code_value(
+            encoded[secondary_pos], encoded[secondary_pos + 1],
+        )
+        secondary_pos += 1
+        if 0 <= record_index < table.record_count:
+            record = table.record(record_index)
+            out.extend(record.source)
+            primary_pos = min(split, primary_pos + len(record.primary))
+
+    if primary_pos < split:
+        out.extend(encoded[primary_pos:split])
+    return bytes(out)
+
+
+def encode_tablea_simple(table: TableAStruct, text: str) -> bytes:
+    """Encode through Table-A records without the EXE's mode quirks.
+
+    This intentionally mirrors the core record copy in ``seg5:4688``:
+    source bytes append their primary slice to the first stream and
+    their secondary slice to the second stream.  The mode-specific
+    first-two-byte handling and case branches are still being decoded,
+    so this command is a structural probe rather than the final lookup
+    encoder.
+    """
+    data = text.encode('latin-1', 'replace')
+    primary = bytearray()
+    secondary = bytearray()
+    pos = 0
+    while pos < len(data):
+        b = data[pos]
+        record_index: int | None
+        if b == ord('&'):
+            dot = data.find(b'.', pos + 1)
+            if dot < 0:
+                record_index = None
+                pos += 1
+            else:
+                token = data[pos:dot + 1]
+                record_index = table.find_entity_record_index(token)
+                pos = dot + 1
+        else:
+            record_index = table.direct_record_index(b)
+            pos += 1
+        if record_index is None:
+            continue
+        record = table.record(record_index)
+        primary.extend(record.primary)
+        secondary.extend(record.secondary)
+    primary.append(0x03)
+    primary.extend(secondary)
+    primary.append(0x00)
+    return bytes(primary)
 
 
 class OED2Reader:
@@ -1558,14 +2119,14 @@ class OED2Reader:
             fragment_area = f.read(header.fragment_bytes)
             fragments = parse_nul_fragments(fragment_area)
 
+            extra_raw = f.read(4)
+            if len(extra_raw) != 4:
+                raise ValueError(f'short OED list extra table at 0x{offset:x}')
+            count_base = struct.unpack('>I', extra_raw)[0]
             cumulative_deltas = [
                 struct.unpack('>i', f.read(4))[0]
                 for _ in range(header.block_count)
             ]
-            extra_raw = f.read(4)
-            if len(extra_raw) != 4:
-                raise ValueError(f'short OED list extra table at 0x{offset:x}')
-            extra_value = struct.unpack('>I', extra_raw)[0]
             first_fragment_skip = f.read(header.block_count)
             marker_area = f.read(header.marker_bytes)
             markers = parse_lf_markers(marker_area, header.block_count)
@@ -1577,7 +2138,7 @@ class OED2Reader:
             header=header,
             fragments=fragments,
             cumulative_deltas=cumulative_deltas,
-            extra_value=extra_value,
+            count_base=count_base,
             first_fragment_skip=first_fragment_skip,
             markers=markers,
             path=self.path,
@@ -1923,8 +2484,8 @@ def command_oedlist(reader: OED2Reader, args: argparse.Namespace) -> None:
     print(f'  control=0x{control.offset:08x}')
     print(f'  magic=0x{h.magic:04x} version={h.version} '
           f'blocks={h.block_count} block_size=0x{h.block_size:x}')
-    print(f'  entry_base={h.entry_base} fragments={h.fragment_bytes} '
-          f'markers={h.marker_bytes} extra={control.extra_value}')
+    print(f'  max_key_bytes={h.max_key_bytes} fragments={h.fragment_bytes} '
+          f'markers={h.marker_bytes} count_base={control.count_base}')
     print(f'  block_data=0x{control.block_data_offset:08x}'
           f'..0x{control.block_data_end:08x}')
     counts = control.entry_counts()
@@ -2150,6 +2711,97 @@ def command_tablea(reader: OED2Reader, args: argparse.Namespace) -> None:
             stop = min(len(vals), start + args.words)
             shown = ' '.join(f'{value:04x}' for value in vals[start:stop])
             print(f'  words[{start}:{stop}] {shown}')
+        table_struct: TableAStruct | None = None
+        if (args.struct or args.record_indexes or args.map_bytes
+                or args.encode or args.encode_exe or args.decode_exe_hex):
+            try:
+                table_struct = parse_tablea_struct(raw)
+            except ValueError as exc:
+                print(f'  structured parse failed: {exc}')
+            else:
+                index_samples = [
+                    table_struct.index_map[i]
+                    for i in range(min(16, len(table_struct.index_map)))
+                ]
+                print(
+                    f'  struct records={table_struct.record_count} '
+                    f'entities={table_struct.entity_count} '
+                    f'pool=0x{len(table_struct.pool):x} '
+                    f'index_map={len(table_struct.index_map)}'
+                )
+                print(
+                    f'  struct offsets[0:8] '
+                    f'{" ".join(f"{v:04x}" for v in table_struct.offsets[:8])}'
+                )
+                print(
+                    f'  struct index[0:16] '
+                    f'{" ".join(f"{v:04x}" for v in index_samples)}'
+                )
+        if table_struct is not None and args.record_indexes:
+            for index in args.record_indexes:
+                try:
+                    record = table_struct.record(index)
+                except IndexError:
+                    print(f'  record[{index}] out of range')
+                    continue
+                rank = tablea_rank_value(record.secondary)
+                rank_text = '?' if rank is None else str(rank)
+                print(
+                    f'  record[{index:4d}] '
+                    f'off={record.offsets[0]:04x}/{record.offsets[1]:04x}/'
+                    f'{record.offsets[2]:04x}/{record.offsets[3]:04x} '
+                    f'source={marked_bytes(record.source)!r} '
+                    f'primary={marked_bytes(record.primary)!r} '
+                    f'secondary={marked_bytes(record.secondary)!r} '
+                    f'rank={rank_text}'
+                )
+        if table_struct is not None and args.map_bytes:
+            for item in args.map_bytes:
+                if len(item) == 1:
+                    byte = ord(item)
+                else:
+                    byte = parse_int(item)
+                try:
+                    record_index = table_struct.direct_record_index(byte)
+                except ValueError:
+                    print(f'  map[{item!r}] invalid byte')
+                    continue
+                if record_index is None:
+                    print(f'  map[{item!r}] -> ffff')
+                    continue
+                record = table_struct.record(record_index)
+                print(
+                    f'  map[{item!r}/0x{byte:02x}] -> record {record_index}: '
+                    f'{marked_bytes(record.source)!r} -> '
+                    f'{marked_bytes(record.primary)!r} + '
+                    f'{marked_bytes(record.secondary)!r}'
+                )
+        if table_struct is not None and args.encode:
+            for text in args.encode:
+                encoded = encode_tablea_simple(table_struct, text)
+                print(
+                    f'  encode-simple {text!r}: '
+                    f'{marked_bytes(encoded)}  hex={encoded.hex(" ")}'
+                )
+        if table_struct is not None and args.encode_exe:
+            for text in args.encode_exe:
+                encoded = encode_tablea_exe(
+                    table_struct, text, args.mode, args.mode_hi,
+                )
+                print(
+                    f'  encode-exe {text!r}: '
+                    f'{marked_bytes(encoded)}  hex={encoded.hex(" ")}'
+                )
+        if table_struct is not None and args.decode_exe_hex:
+            for text in args.decode_exe_hex:
+                encoded = bytes.fromhex(text)
+                decoded = decode_tablea_exe(
+                    table_struct, encoded, args.mode, args.mode_hi,
+                )
+                print(
+                    f'  decode-exe {text!r}: '
+                    f'{marked_bytes(decoded)}  hex={decoded.hex(" ")}'
+                )
         if args.text:
             if args.text_start is None:
                 text_start = find_tablea_text_start(raw)
@@ -2979,6 +3631,69 @@ def command_substprobe(reader: OED2Reader, args: argparse.Namespace) -> None:
             print()
 
 
+def command_oedlookup(reader: OED2Reader, args: argparse.Namespace) -> None:
+    control = reader.read_oed_list(args.name)
+    require_exact = True
+    full_encoded: bytes | None = None
+    table: TableAStruct | None = None
+    if args.raw_hex:
+        key = bytes.fromhex(args.text)
+        source = 'raw hex'
+    else:
+        query = args.text
+        if args.ui_word_primary:
+            if args.name != 'word':
+                raise SystemExit('--ui-word-primary is only valid for word')
+            query = '0a' + query
+            require_exact = False
+        elif args.ui_word_prefix and args.name == 'word':
+            query = '0a' + query
+        table_a, _table_b = OED_LIST_TABLES[args.name]
+        if table_a is None:
+            raise SystemExit(f'no table-A anchor recorded for {args.name!r}')
+        table = parse_tablea_struct(reader.read_at_file_offset(table_a, 0x4000))
+        full_encoded = encode_tablea_exe(table, query, args.mode, args.mode_hi)
+        key = (
+            tablea_primary_prefix(full_encoded)
+            if args.ui_word_primary else full_encoded
+        )
+        source = repr(query)
+
+    result = oedlist_original_lookup(
+        control, key, args.scan_limit, require_exact=require_exact,
+    )
+    marker = control.markers[result.marker_block]
+    print(f'{args.name}: source={source}')
+    if full_encoded is not None and full_encoded != key:
+        print(f'  full-encoded={marked_bytes(full_encoded)}')
+        print(f'  full-hex={full_encoded.hex(" ")}')
+    print(f'  encoded={marked_bytes(key)}')
+    print(f'  hex={key.hex(" ")}')
+    print(
+        f'  marker-block={result.marker_block} '
+        f'marker={marked_bytes(marker)}'
+    )
+    print(
+        f'  result={result.reason} blocks_read={result.blocks_read} '
+        f'entries_scanned={result.entries_scanned}'
+    )
+    if result.entry is not None:
+        print(f'  candidate={marked_bytes(result.entry)}')
+        if table is not None:
+            display = decode_tablea_exe(
+                table, result.entry, args.mode, args.mode_hi,
+            )
+            print(f'  display-key={marked_bytes(display)}')
+    if result.index is not None:
+        print(f'  index={result.index}')
+        _table_a, table_b = OED_LIST_TABLES[args.name]
+        if table_b is not None:
+            left, right = reader.read_oed_pointer_records(
+                args.name, result.index, 1,
+            )[0]
+            print(f'  pointer=({left},{right}) body-logical=0x{right:08x}')
+
+
 def command_bodyrec(reader: OED2Reader, args: argparse.Namespace) -> None:
     targets: list[tuple[str, int]] = []
     if args.list_name is not None:
@@ -3314,6 +4029,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p_oedlist.add_argument('--hex', action='store_true',
                            help='show raw decoded key bytes')
 
+    p_oedlookup = sub.add_parser('oedlookup')
+    p_oedlookup.add_argument('name', choices=sorted(OED_LIST_TABLES))
+    p_oedlookup.add_argument('text')
+    p_oedlookup.add_argument('--raw-hex', action='store_true',
+                             help='treat text as a hex-encoded raw key')
+    p_oedlookup.add_argument('--ui-word-prefix', action='store_true',
+                             help='prepend the default 0a word prefix before encoding')
+    p_oedlookup.add_argument('--ui-word-primary', action='store_true',
+                             help='mimic seg3:35f8 word lookup: prepend 0a, keep primary bytes, prefix-match')
+    p_oedlookup.add_argument('--mode', type=parse_int, default=0x0100)
+    p_oedlookup.add_argument('--mode-hi', type=parse_int, default=0)
+    p_oedlookup.add_argument('--scan-limit', type=int,
+                             help='diagnostic cap on the original forward scan')
+
     p_ptrs = sub.add_parser('ptrs')
     p_ptrs.add_argument('name', choices=sorted(OED_LIST_TABLES))
     p_ptrs.add_argument('--start', type=int, default=0)
@@ -3335,6 +4064,21 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p_tablea.add_argument('--text-bytes', type=parse_int, default=240)
     p_tablea.add_argument('--records', action='store_true')
     p_tablea.add_argument('--record-limit', type=int, default=40)
+    p_tablea.add_argument('--struct', action='store_true',
+                          help='parse using the EXE-derived offset arrays')
+    p_tablea.add_argument('--record-indexes', type=int, nargs='*',
+                          help='dump structured Table-A records by index')
+    p_tablea.add_argument('--map-bytes', nargs='*',
+                          help='show direct byte to Table-A record mappings')
+    p_tablea.add_argument('--encode', nargs='*',
+                          help='encode strings through the simple Table-A record copier')
+    p_tablea.add_argument('--encode-exe', nargs='*',
+                          help='encode strings through seg5:4688 rules')
+    p_tablea.add_argument('--decode-exe-hex', nargs='*',
+                          help='decode hex keys through seg5:4c40 rules')
+    p_tablea.add_argument('--mode', type=parse_int, default=0x0100,
+                          help='seg5:4688 mode word, default word list')
+    p_tablea.add_argument('--mode-hi', type=parse_int, default=0)
 
     p_sparse = sub.add_parser('sparse')
     p_sparse.add_argument('name', nargs='?', default='startup-a',
@@ -3575,6 +4319,7 @@ def main(argv: list[str]) -> int:
         'bodyctl': command_bodyctl,
         'origmap': command_origmap,
         'oedlist': command_oedlist,
+        'oedlookup': command_oedlookup,
         'ptrs': command_ptrs,
         'tablea': command_tablea,
         'sparse': command_sparse,

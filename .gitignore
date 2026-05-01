@@ -2,6 +2,9 @@
 __pycache__/
 *.pyc
 
+# Web tooling
+node_modules/
+
 # Local Oxford data/media and installed reader artifacts
 *.DAT
 *.dat

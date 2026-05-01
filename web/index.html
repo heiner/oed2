@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OED2 Lookup</title>
+    <link rel="stylesheet" href="./src/style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <strong>OED2 Lookup</strong>
+          <span id="metrics"></span>
+        </div>
+        <div class="source-controls">
+          <label class="url-field">
+            <span>DAT</span>
+            <input id="dat-url" type="text" value="/OED2.DAT" spellcheck="false">
+          </label>
+          <label class="file-field">
+            <span>File</span>
+            <input id="dat-file" type="file" accept=".DAT,.dat">
+          </label>
+          <button id="connect" type="button" title="Connect data source">↻</button>
+        </div>
+      </header>
+
+      <section class="lookup-band">
+        <label class="query-field">
+          <span>Look Up</span>
+          <input id="query" type="search" autocomplete="off" spellcheck="false" autofocus>
+        </label>
+        <div id="status" class="status" aria-live="polite"></div>
+      </section>
+
+      <section class="workarea">
+        <aside class="results-pane" aria-label="Word list">
+          <ol id="results"></ol>
+        </aside>
+        <article class="article-pane">
+          <header class="article-header">
+            <h1 id="article-title">No article selected</h1>
+            <p id="article-meta"></p>
+          </header>
+          <div id="article" class="article-body"></div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

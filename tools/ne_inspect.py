@@ -182,6 +182,32 @@ class NEFile:
             desc = f'osfixup {target1}:{target2}'
         return f'src=0x{source_type:02x} flags=0x{flags:02x} {desc}'
 
+    def relocation_chain(self, seg: Segment,
+                         reloc: tuple[int, int, int, int, int]) -> list[int]:
+        """Return every source offset covered by an NE relocation chain."""
+        _source_type, _flags, offset, _target1, _target2 = reloc
+        blob = self.segment_data(seg)
+        out: list[int] = []
+        seen: set[int] = set()
+        while 0 <= offset + 1 < len(blob) and offset not in seen:
+            out.append(offset)
+            seen.add(offset)
+            next_offset = struct.unpack_from('<H', blob, offset)[0]
+            if next_offset in (0x0000, 0xffff):
+                break
+            offset = next_offset
+        return out
+
+    def relocation_map(
+        self, seg: Segment
+    ) -> dict[int, list[tuple[int, int, int, int, int]]]:
+        """Map every chained source offset to its relocation entry."""
+        out: dict[int, list[tuple[int, int, int, int, int]]] = {}
+        for reloc in self.relocations(seg):
+            for offset in self.relocation_chain(seg, reloc):
+                out.setdefault(offset, []).append(reloc)
+        return out
+
     def ascii_strings(self, segment_index: int | None = None,
                       min_len: int = 4) -> dict[int, str]:
         """Return NUL-terminated-ish printable strings keyed by segment offset.
@@ -269,7 +295,15 @@ def command_relocs(ne: NEFile, args: argparse.Namespace) -> None:
         shown = 0
         for reloc in relocs:
             _source_type, _flags, offset, _target1, _target2 = reloc
-            print(f'  off=0x{offset:04x} {ne.relocation_desc(reloc)}')
+            chain = ne.relocation_chain(seg, reloc)
+            if args.chains and len(chain) > 1:
+                offsets = ','.join(f'0x{item:04x}' for item in chain)
+                print(
+                    f'  off=0x{offset:04x} chain=[{offsets}] '
+                    f'{ne.relocation_desc(reloc)}'
+                )
+            else:
+                print(f'  off=0x{offset:04x} {ne.relocation_desc(reloc)}')
             shown += 1
             if args.limit and shown >= args.limit:
                 break
@@ -352,7 +386,7 @@ def command_disasm(ne: NEFile, args: argparse.Namespace) -> None:
         raise SystemExit(f'start 0x{start:x} outside segment {seg.index}')
 
     blob = ne.segment_data(seg)
-    relocs = {r[2]: r for r in ne.relocations(seg)}
+    relocs = ne.relocation_map(seg)
     data_strings = ne.ascii_strings(ne.auto_data_segment, min_len=args.string_min)
     proc = subprocess.run(
         ['ndisasm', '-b', '16', '-o', f'0x{start:x}', '-e', f'0x{start:x}', '-'],
@@ -376,9 +410,10 @@ def command_disasm(ne: NEFile, args: argparse.Namespace) -> None:
         notes: list[str] = []
 
         for reloc_off in range(addr, addr + max(insn_len, 1)):
-            reloc = relocs.get(reloc_off)
-            if reloc is not None:
-                notes.append(f'reloc@+{reloc_off - addr}: {ne.relocation_desc(reloc)}')
+            for reloc in relocs.get(reloc_off, []):
+                notes.append(
+                    f'reloc@+{reloc_off - addr}: {ne.relocation_desc(reloc)}'
+                )
 
         immediates = [int(m.group(1), 16) for m in IMM_RE.finditer(asm)]
         for word in immediates:
@@ -499,25 +534,23 @@ def command_calls(ne: NEFile, args: argparse.Namespace) -> None:
         if not seg.is_code:
             continue
         blob = ne.segment_data(seg)
-        relocs = {r[2]: r for r in ne.relocations(seg)}
+        relocs = ne.relocation_map(seg)
         shown = 0
         for off, target_off, raw_seg in iter_far_calls(blob):
             reloc_notes: list[str] = []
             for reloc_off in (off + 1, off + 3):
-                reloc = relocs.get(reloc_off)
-                if reloc is not None:
+                for reloc in relocs.get(reloc_off, []):
                     reloc_notes.append(f'reloc@+{reloc_off - off}: '
                                        f'{ne.relocation_desc(reloc)}')
             if args.target is not None and target_off != args.target:
                 continue
             if args.internal_seg is not None:
                 matched = False
-                for reloc in (relocs.get(off + 1), relocs.get(off + 3)):
-                    if reloc is None:
-                        continue
-                    _st, flags, _roff, target1, _target2 = reloc
-                    if flags & 0x03 == 0x00 and target1 == args.internal_seg:
-                        matched = True
+                for reloc_off in (off + 1, off + 3):
+                    for reloc in relocs.get(reloc_off, []):
+                        _st, flags, _roff, target1, _target2 = reloc
+                        if flags & 0x03 == 0x00 and target1 == args.internal_seg:
+                            matched = True
                 if not matched:
                     continue
             suffix = ''
@@ -630,6 +663,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p_relocs = sub.add_parser('relocs')
     p_relocs.add_argument('--segment', type=int)
     p_relocs.add_argument('--limit', type=int, default=80)
+    p_relocs.add_argument('--chains', action='store_true',
+                          help='show every chained source offset')
 
     p_extract = sub.add_parser('extract')
     p_extract.add_argument('segment', type=int)
