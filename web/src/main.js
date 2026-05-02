@@ -4,8 +4,12 @@ import {
   normalizeSearch,
   renderArticleRecordsHtml,
 } from "./oed2.js";
+import { PageCachedSource } from "./page-cache.js";
 
-const ISO_URL = "https://misty-heart-2775.heiner-a97.workers.dev/";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const ISO_URL = LOCAL_HOSTS.has(location.hostname)
+  ? "/OED2.iso"
+  : "https://misty-heart-2775.heiner-a97.workers.dev/";
 const DAT_OFFSET_IN_ISO = 0xa800;
 
 const state = {
@@ -149,7 +153,9 @@ function hydrateReferenceLinks(root = els.article) {
 }
 
 async function connect() {
-  const reader = new OED2Reader(new HttpRangeSource(ISO_URL, DAT_OFFSET_IN_ISO));
+  const network = new HttpRangeSource(ISO_URL, DAT_OFFSET_IN_ISO);
+  const cached = new PageCachedSource(network);
+  const reader = new OED2Reader(cached);
   setStatus("Opening…");
   try {
     await Promise.all([reader.readBodyControl(), reader.readOedList("word")]);
