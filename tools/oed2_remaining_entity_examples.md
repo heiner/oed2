@@ -2,7 +2,7 @@
 
 Each row gives one representative entry where the unresolved entity first occurs. Use the `Query` value in the web UI, or open the URL while the static server is running. The index is the nearest word-list row at/after the entry start, so for a few shared entries the query label is the more authoritative lookup target.
 
-Total unresolved token names outside phonetic markup: 54.
+Total unresolved token names outside phonetic markup: 51.
 
 ## uncategorized
 
@@ -26,7 +26,6 @@ Total unresolved token names outside phonetic markup: 54.
 | `&cursived.` | 2 | #406655 th | `th` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=th&index=406655) | &cursived.) ( |
 | `&horizb.` | 1 | #1586 accolade | `accolade` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=accolade&index=1586) | curve &horizb., |
 | `&msylab.` | 1 | #8562 alternate a. and n. | `alternate a. and n.` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=alternate%20a.%20and%20n.&index=8562) | &msylab.</ed>, |
-| `&2third.` | 1 | #18369 atom n. | `atom n.` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=atom%20n.&index=18369) | 2&2third. |
 | `&benchm.` | 1 | #29606 'bench-mark | `'bench-mark` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q='bench-mark&index=29606) | thus &benchm..&es. |
 | `&burman.` | 1 | #43473 Burman a. and n. | `Burman a. and n.` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=Burman%20a.%20and%20n.&index=43473) | mark (&burman.) |
 | `&devrfls.` | 1 | #52913 cerebral a. (and n.) | `cerebral a. (and n.)` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=cerebral%20a.%20(and%20n.)&index=52913) | &devrfls. |
@@ -40,7 +39,6 @@ Total unresolved token names outside phonetic markup: 54.
 | `&pall.` | 1 | #90851 depalatalization | `depalatalization` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=depalatalization&index=90851) | &pall.</ed>.</qt></q> <q><qd> |
 | `&lumlbl.` | 1 | #93644 dhole | `dhole` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=dhole&index=93644) | t&ocirc.&lumlbl.a</cf> |
 | `&fac.` | 1 | #122312 factorial a.1 | `factorial a.1` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=factorial%20a.1&index=122312) | symbolically &fac. |
-| `&22n.` | 1 | #125803 Fermat | `Fermat` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=Fermat&index=125803) | form &22n. + |
 | `&ormg.` | 1 | #139504 G | `G` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=G&index=139504) | &ormg.</vf> = <pr> |
 | `&vavsheva.` | 1 | #142992 general a. and n. | `general a. and n.` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=general%20a.%20and%20n.&index=142992) | &vavsheva. |
 | `&glagjeru.` | 1 | #192983 jer | `jer` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=jer&index=192983) | &glagjeru., |
@@ -57,7 +55,6 @@ Total unresolved token names outside phonetic markup: 54.
 | `&devrth.` | 1 | #406655 th | `th` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=th&index=406655) | &devrth. <cf> |
 | `&nowy.` | 1 | #417797 toxius | `toxius` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=toxius&index=417797) | thus &nowy..</qt></q></qp></e> |
 | `&Ubox.` | 1 | #432208 un'countable a. and n. | `un'countable a. and n.` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=un'countable%20a.%20and%20n.&index=432208) | sign &Ubox. |
-| `&4d.` | 1 | #456573 wearish a. | `wearish a.` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=wearish%20a.&index=456573) | Pref. (&4d.) |
 | `&nono.` | 1 | #463284 wine n.1 | `wine n.1` | [open](http://127.0.0.1:8765/?dat=%2FOED2.DAT&q=wine%20n.1&index=463284) | &nono. |
 
 ## formula-or-layout-marker

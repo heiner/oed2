@@ -1630,7 +1630,9 @@ export class OED2Reader {
     const label = sgmlHeadgroupText(data);
     const text = bytesToText(data);
     const hgEnd = text.indexOf("</hg>");
-    const labelHtml = renderSourceHtml(hgEnd >= 0 ? text.slice(0, hgEnd) : text);
+    const hgSource = hgEnd >= 0 ? text.slice(0, hgEnd) : text;
+    const titleSpans = hgSource.match(/<(hw|hm|ps)>[\s\S]*?<\/\1>/g) ?? [];
+    const labelHtml = renderSourceHtml(titleSpans.join(" "));
     const out = { index, label, labelHtml, logical: entryLogical, targetLogical: pointer.logical };
     this.headgroupCache.set(index, out);
     return out;
@@ -1828,7 +1830,7 @@ export function entityPreview(token) {
     const key = `${num}/${den}`;
     return VULGAR[key] ?? `${num}⁄${den}`;
   }
-  return token;
+  return `<${name}>`;
 }
 
 export function decodePhoneticText(text) {
