@@ -158,10 +158,26 @@ async function connect() {
     await Promise.all([reader.readBodyControl(), reader.readOedList("word")]);
     state.reader = reader;
     setStatus("");
+    void prefetchWordListRegion(cached, reader.lists.get("word"));
     return true;
   } catch (error) {
     setStatus(error.message, "error");
     return false;
+  }
+}
+
+async function prefetchWordListRegion(source, list) {
+  if (!list) return;
+  // Prefetch control + the 1039 list blocks + table-A (~2 MB total).
+  // Table-B (~3.6 MB on its own) is fetched lazily; with 512 KB
+  // pages a single lookup of N suggestions only touches one or two
+  // table-B pages, so it amortises away anyway.
+  const start = list.controlOffset;
+  const end = list.blockDataOffset + list.blockCount * list.blockSize + 0x4000;
+  try {
+    await source.read(start, end - start);
+  } catch (_) {
+    // Silent — this is just a warm-up.
   }
 }
 
