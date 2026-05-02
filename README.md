@@ -80,6 +80,12 @@ and RTF/display routines.  The Python tools currently implement readable
 render-ish previews, headgroup extraction, entity inspection, partial RTF
 style decoding, and an ANSI-colored terminal preview.
 
+The body markup is SGML-shaped (element names like `<hg>`, `<hw>`, `<ps>`,
+`<sub>`, entity references with a `.` terminator like `&schwa.`,
+`&page.`) but no DTD was ever attempted for it: see Tompa, "What is (tagged)
+text?" (1989), https://www.jstor.org/stable/43091009.  `OED.EXE` is the
+authoritative source for what each entity and tag actually rendered.
+
 ## Why This Was Good 1990s Technology
 
 The design is tuned for CD-ROM, Win16 memory, and slow random I/O:

@@ -104,14 +104,126 @@ const ENTITY_NAME_UNICODE = {
   ddd: "...",
   es: " ",
   ts: " ",
+  fs: "",
+  par: "",
+  or: "or",
+  q: "?",
+  mc: "c",
+  asg: "ᵹ",
+  pp: "″",
+  // Greek letters via &i*. (italic / Greek-font slot in OED.EXE)
+  ia: "α",
+  ib: "β",
+  ig: "γ",
+  id: "δ",
+  ie: "ε",
+  iz: "ζ",
+  ih: "η",
+  iq: "θ",
+  // Standalone diacritics (combining marks; the browser composes them onto the preceding character)
+  acu: "́",
+  grave: "̀",
+  circ: "̂",
+  tilde: "̃",
+  uml: "̈",
+  mac: "̄",
+  breve: "̆",
+  hacek: "̌",
+  hook: "̉",
+  dotab: "̇",
+  dotbl: "̣",
+  cdil: "̧",
+  ced: "̧",
+  undl: "̲",
+  // Classical / paleographic letters
+  digamma: "ϝ",
+  Digamma: "Ϝ",
+  koppa: "ϟ",
+  Koppa: "Ϟ",
+  sampi: "ϡ",
+  Sampi: "Ϡ",
+  fsigma: "ς",
+  hbar: "ℏ",
+  eth: "ð",
+  Eth: "Ð",
+  Wyn: "Ƿ",
+  Tse: "Ц",
+  // Apothecary measures
+  recipe: "℞",
+  ounce: "℥",
+  drachm: "ʒ",
+  scruple: "℈",
+  // Astronomical / zodiac
+  aries: "♈",
+  taur: "♉",
+  leo: "♌",
+  virgo: "♍",
+  libra: "♎",
+  scorpio: "♏",
+  sagit: "♐",
+  capr: "♑",
+  aquar: "♒",
+  pisces: "♓",
+  earth: "♁",
+  jup: "♃",
+  saturn: "♄",
+  merc: "☿",
+  moonfq: "☽",
+  moonlq: "☾",
+  // Card suits, cross, ankh
+  heart: "♥",
+  spade: "♠",
+  cross: "✝",
+  ankh: "☥",
+  circle: "○",
+  circledot: "⊙",
+  // Math / logic
+  ergo: "∴",
+  since: "∵",
+  congr: "≅",
+  implies: "⇒",
+  notelem: "∉",
+  not: "¬",
+  expon: "↑",
+  equil: "⇌",
+  assert: "⊢",
+  // Arrows / brackets
+  lar: "←",
+  lrar: "↔",
+  dblar: "⇔",
+  dblgt: "»",
+  dbllt: "«",
+  // Index hand
+  index: "☞",
+  // Paragraph variants — best-guess Unicode equivalents for OED's medieval paragraph
+  // marks; OED.EXE doesn't bind them to specific glyphs we can verify.
+  fatpara: "⁋",
+  para2: "⸿",
+  para3: "❡",
+  para4: "⁋",
+  para5: "¶",
+  // Latin letters with stroke / paleographic shapes
+  Lbar: "Ł",
+  lbar: "ł",
+  Obar: "Ø",
+  obar: "ø",
+  Abarab: "Ā",
+  Tbarab: "T̄",
+  tbarab: "t̄",
+  hbar2: "ℏ",
+  // Punctuation / symbols
+  hash: "#",
+  caret: "^",
+  bslash: "\\",
   amp: "&",
   and: "and",
   sm: "'",
+  smm: "\"",
   lt: "<",
   gt: ">",
   times: "\u00d7",
   sect: "\u00a7",
-  page: "\u00b6",
+  page: "\u204b",
   para: "\u00b6",
   dag: "\u2020",
   ddag: "\u2021",
@@ -150,6 +262,336 @@ const ENTITY_NAME_UNICODE = {
   star: "\u2606",
   a: "a",
   c: "c",
+  // Phonetic / consonant marks
+  glots: "\u0294",
+  click: "\u01c3",
+  pharyng: "\u0295",
+  // Hebrew letters
+  hebaleph: "\u05d0",
+  hebbeth: "\u05d1",
+  hebgimel: "\u05d2",
+  hebdaleth: "\u05d3",
+  hebhe: "\u05d4",
+  hebwaw: "\u05d5",
+  hebzayin: "\u05d6",
+  hebcheth: "\u05d7",
+  hebteth: "\u05d8",
+  hebyod: "\u05d9",
+  hebkaph: "\u05db",
+  heblamed: "\u05dc",
+  hebmem: "\u05de",
+  hebnun: "\u05e0",
+  hebnunfin: "\u05df",
+  hebpe: "\u05e4",
+  hebpedag: "\u05e4\u05bc",
+  hebqoph: "\u05e7",
+  hebresh: "\u05e8",
+  hebshin: "\u05e9",
+  hebtav: "\u05ea",
+  hebtsade: "\u05e6",
+  hebayin: "\u05e2",
+  ayin: "\u05e2",
+  // Hebrew vowel points (niqqud)
+  qamets: "\u05b8",
+  hireq: "\u05b4",
+  segol: "\u05b6",
+  sheva: "\u05b0",
+  hatpath: "\u05b2",
+  hatqam: "\u05b3",
+  hatseg: "\u05b1",
+  shadda: "\u0651",
+  // Cyrillic letters
+  cyrO: "\u041e",
+  cyrP: "\u0420",
+  cyra: "\u0430",
+  cyrd: "\u0434",
+  cyre: "\u0435",
+  cyrm: "\u043c",
+  cyrn: "\u043d",
+  cyrr: "\u0440",
+  cyrt: "\u0442",
+  cyry: "\u0443",
+  cyrhard: "\u044a",
+  cyrsoft: "\u044c",
+  cyrjat: "\u0463",
+  // Arabic letters (most common; "*full" variants left for now)
+  aralif: "\u0627",
+  arba: "\u0628",
+  arta: "\u062a",
+  artha: "\u062b",
+  arha: "\u062d",
+  ardal: "\u062f",
+  arnun: "\u0646",
+  arpa: "\u067e",
+  arqoph: "\u0642",
+  arwaw: "\u0648",
+  arya: "\u064a",
+  arain: "\u0639",
+  arTa: "\u0637",
+  arHa: "\u0647",
+  arzero: "\u0660",
+  // Greek paleographic / archaic letterforms \u2014 render as the modern Greek letter
+  egchi: "\u03c7",
+  eggamma1: "\u03b3",
+  eggamma2: "\u03b3",
+  egiota: "\u03b9",
+  egkappa: "\u03ba",
+  eglambda: "\u03bb",
+  egmu1: "\u03bc",
+  egmu2: "\u03bc",
+  egnu1: "\u03bd",
+  egnu2: "\u03bd",
+  egpi1: "\u03c0",
+  egpi2: "\u03c0",
+  egpi3: "\u03c0",
+  egrho1: "\u03c1",
+  egrho2: "\u03c1",
+  egsampi: "\u03e1",
+  egsan: "\u03fb",
+  egsigma1: "\u03c3",
+  egsigma2: "\u03c3",
+  egxi1: "\u03be",
+  egxi2: "\u03be",
+  egxi3: "\u03be",
+  // Mathematical alphanumeric \u2014 Fraktur capitals
+  frakB: "\ud835\udd05",
+  frakG: "\ud835\udd0a",
+  frakH: "\u210c",
+  frakI: "\u2111",
+  frakM: "\ud835\udd10",
+  frakU: "\ud835\udd18",
+  frakX: "\ud835\udd1b",
+  frakY: "\ud835\udd1c",
+  frakh: "\ud835\udd25",
+  // Mathematical alphanumeric \u2014 Script
+  scrA: "\ud835\udc9c",
+  scrC: "\ud835\udc9e",
+  scrE: "\u2130",
+  scrF: "\u2131",
+  scrI: "\u2110",
+  scrJ: "\ud835\udca5",
+  scrL: "\u2112",
+  scrM: "\u2133",
+  scrQ: "\ud835\udcac",
+  scrR: "\u211b",
+  scrS: "\ud835\udcae",
+  scrT: "\ud835\udcaf",
+  scrU: "\ud835\udcb0",
+  scrb: "\ud835\udcb7",
+  scrh: "\ud835\udcbd",
+  scrl: "\ud835\udcc1",
+  // Italic / Bold capitals
+  italU: "\ud835\udc48",
+  blC: "\ud835\udc02",
+  blJ: "\ud835\udc09",
+  blU: "\ud835\udc14",
+  blb: "\ud835\udc1b",
+  bly: "\ud835\udc32",
+  // Music symbols
+  semibr: "\ud834\udd5d",
+  crotchet: "\u2669",
+  quaver: "\u266a",
+  squaver: "\u266c",
+  sqquav: "\u266c",
+  versicle1: "\u2123",
+  versicle2: "\u211f",
+  comtime: "\ud834\udd34",
+  segno: "\ud834\udd0b",
+  // Math / set
+  Summ: "\u2211",
+  Integ: "\u222b",
+  conj: "\u2227",
+  // Currency / letters
+  Naira: "\u20a6",
+  Asg: "\ua77d",
+  // Combining-mark aliases (the "no-font" variants in OED.EXE)
+  nfacu: "\u0301",
+  nfasper: "\u0314",
+  nfbreve: "\u0306",
+  nfced: "\u0327",
+  nfcirc: "\u0302",
+  nffrown: "\u0311",
+  nfgra: "\u0300",
+  nfhacek: "\u030c",
+  nfmac: "\u0304",
+  nftilde: "\u0303",
+  nfuml: "\u0308",
+  // Brackets / shapes
+  lhalfbr: "\u231c",
+  rhalfbr: "\u231d",
+  lhshoe: "\u2283",
+  rhshoe: "\u2282",
+  bigobl: "/",
+  blozenge: "\u25c6",
+  bsquare: "\u25a0",
+  // Old English / runic
+  runwyn: "\u16b9",
+  runash: "\u16ab",
+  // Misc
+  tittle: "\u00b7",
+  tie: "\u203f",
+  // Ligatures (Latin typography)
+  ffilig: "\ufb03",
+  ffllig: "\ufb04",
+  fllig: "\ufb02",
+  ifilig: "\ufb01",
+  ifflig: "\ufb00",
+  istlig: "\ufb06",
+  stlig: "\ufb06",
+  ctlig: "ct",
+  // Dotless letters
+  dlessi: "\u0131",
+  dlessj1: "\u0237",
+  dlessj2: "\u0237",
+  dlessj3: "\u0237",
+  // Reversed / IPA letters
+  revC: "\u2183",
+  reva: "\u0250",
+  revc: "\u0254",
+  revv: "\u028c",
+  revr: "\u0279",
+  revope: "\u0258",
+  revsc: "\u0281",
+  ibar: "\u0268",
+  ng: "\u014b",
+  // More math / typographic symbols
+  fact: "!",
+  minpl: "\u2213",
+  planck: "\u210e",
+  phi2: "\u03d5",
+  pmil: "\u2030",
+  sup2: "\u00b2",
+  cprt: "\u00a9",
+  // Old Latin / Egyptian Greek paleography
+  elatS: "S",
+  elatc1: "C",
+  elatc2: "c",
+  elatg1: "g",
+  elatg2: "g",
+  egy3: "\u03c5",
+  egyasper: "\u1f51",
+  // More Fraktur
+  frE: "\ud835\udd08",
+  frL: "\ud835\udd0f",
+  frR: "\u211c",
+  // Phoenician / Aramaic shapes \u2014 render as the Hebrew equivalent for legibility
+  semain1: "\u05e2",
+  semain2: "\u05e2",
+  semhe: "\u05d4",
+  semheth: "\u05d7",
+  semkaph: "\u05db",
+  semlamed1: "\u05dc",
+  semlamed2: "\u05dc",
+  semmem: "\u05de",
+  semnun: "\u05e0",
+  sempe: "\u05e4",
+  semqoph1: "\u05e7",
+  semqoph2: "\u05e7",
+  semqoph3: "\u05e7",
+  semresh: "\u05e8",
+  semtav1: "\u05ea",
+  semtav2: "\u05ea",
+  semtav3: "\u05ea",
+  semtav4: "\u05ea",
+  semyod: "\u05d9",
+  semzayin1: "\u05d6",
+  semzayin2: "\u05d6",
+  semzayin3: "\u05d6",
+  // Arabic "full" variants \u2014 fall back to the base letter
+  arainfull: "\u0639",
+  arnunfull: "\u0646",
+  arshinfull: "\u0634",
+  arDadfull: "\u0636",
+  artafull: "\u062a",
+  aryafull: "\u064a",
+  // Underdot transliteration diacritics (used for Sanskrit, Semitic etc.)
+  udA: "\u1ea0",
+  uda: "\u1ea1",
+  udT: "\u1e6c",
+  udh: "\u1e25",
+  udw: "\u1e89",
+  // Letters with bar / stroke
+  bbar: "\u0180",
+  dbar: "\u0111",
+  ubar: "\u016b",
+  pbar: "p\u0304",
+  thbar: "\u00fe\u0304",
+  // Devanagari (most common)
+  devdh: "\u0927",
+  devph: "\u092b",
+  devt: "\u0924",
+  devth: "\u0925",
+  // Music ornaments / older notation
+  mord: "\ud834\udd9d",
+  longmord: "\ud834\udd9d",
+  sqbreve: "\ud834\udd5c",
+  oldsemibr1: "\ud834\udd5d",
+  oldsemibr2: "\ud834\udd5d",
+  oldbeta: "\u03b2",
+  duplong1: "\ud834\udd5c",
+  duplong2: "\ud834\udd5c",
+  // Misc
+  sigmatau: "\u03c3\u03c4",
+  zh: "\u017e",
+  ye: "y\u1d49",
+  yt: "y\u1d57",
+  reg: "\u00ae",
+  per: "\u2044",
+  half: "\u00bd",
+  hgz: "\u0292",
+  // Triangle / shape variants
+  sidetri: "\u25b7",
+  trli: "\u25b9",
+  udtr: "\u2207",
+  udqm: "\u00bf",
+  // More math / set
+  angle: "\u2220",
+  intsec: "\u2229",
+  wavyeq: "\u2248",
+  ltappr: "\u2a85",
+  ltflat: "\u2a95",
+  // Astrological extras
+  descnode: "\u260b",
+  // Uncial / palaeographic letter forms \u2014 fall back to the modern letter
+  uncU: "U",
+  huncU: "U",
+  // Triangle/box variants \u2014 use closest Unicode
+  bigobl2: "/",
+  // OED transliteration: literal short forms
+  p: "p",
+  pa: "pa",
+  sh: "\u0161",
+  // Chemistry bond markers (used in molecular formulas like -C(NH)OR, =NH, X\u2261Y)
+  b1: "-",
+  b2: "=",
+  b3: "\u2261",
+  // OED short-vowel / scansion marks (sht* = "short")
+  shti: "\u026a",
+  shtu: "\u028a",
+  shtsyll: "\u02d8",
+  // Fractions \u2014 most common ones; OED uses <num>on<den>(th)? for any other fraction
+  // (handled generically in entityPreview below).
+  "3on4": "\u00be",
+  "1on4": "\u00bc",
+  "1on2": "\u00bd",
+  // Generic table separator (the renderer rewrites this to a cell break inside <table>)
+  tab: "\t",
+  // Multiple primes (used to label substituent positions in chemical formulas)
+  ppp: "\u2034",
+  // Big-bracket family used to enclose stacked structural pairs in formulas
+  obigb: "{",
+  cbigb: "}",
+  obigpren: "(",
+  cbigpren: ")",
+  obigsb: "[",
+  cbigsb: "]",
+  ob: "{",
+  cb: "}",
+  oab: "\u27e8",
+  cab: "\u27e9",
+  bra: "\u27e8",
+  odsb: "\u27e6",
+  cdsb: "\u27e7",
 };
 
 const PHONETIC_MULTI_REPLACEMENTS = [
@@ -165,6 +607,8 @@ const PHONETIC_MULTI_REPLACEMENTS = [
 const PHONETIC_CHAR_REPLACEMENTS = {
   "\"": "\u02c8",
   "'": "\u02cc",
+  "%": "\u02cc",
+  "&": "\u00e6",
   "@": "\u0259",
   I: "\u026a",
   U: "\u028a",
@@ -273,13 +717,13 @@ const GREEK_STANDALONE_ENTITIES = {
 const STYLE_TAGS = new Set([
   "hw", "hm", "ph", "ps", "cf", "vf", "vd", "ve", "vfl", "la", "il",
   "bl", "pt", "q", "qt", "qd", "a", "w", "bib", "lc", "x", "xr", "sub",
-  "xs", "xid", "gr", "gk", "i", "b",
+  "xs", "xid", "gr", "gk", "i", "b", "in", "su", "pi", "nu", "dn",
 ]);
 
 const WRAPPED_STYLE_TAGS = new Set([
   "hw", "hm", "ph", "ps", "cf", "vf", "vd", "ve", "vfl", "la", "il",
   "bl", "pt", "q", "qd", "a", "w", "x", "sub", "xs", "xid", "gr", "gk",
-  "i", "b",
+  "i", "b", "in", "su", "pi", "nu", "dn",
 ]);
 
 const WORD_LIST_CODE_LABELS = {
@@ -1312,13 +1756,35 @@ export function entityPreview(token) {
     return ENTITY_NAME_UNICODE[name];
   }
   const suffixes = Object.keys(ENTITY_SUFFIX_MARKS).sort((a, b) => b.length - a.length);
+  const SUFFIX_BASES = { ae: "æ", Ae: "Æ", AE: "Æ", oe: "œ", Oe: "Œ", OE: "Œ" };
   for (const suffix of suffixes) {
     if (name.endsWith(suffix) && name.length > suffix.length) {
       const base = name.slice(0, -suffix.length);
       if (/^[A-Za-z]$/.test(base)) {
         return (base + ENTITY_SUFFIX_MARKS[suffix]).normalize("NFC");
       }
+      if (Object.prototype.hasOwnProperty.call(SUFFIX_BASES, base)) {
+        return (SUFFIX_BASES[base] + ENTITY_SUFFIX_MARKS[suffix]).normalize("NFC");
+      }
     }
+  }
+  const greek = greekEntityPreview(token);
+  if (greek !== null) return greek;
+  const fraction = name.match(/^(\d+)on(\d+)(?:th)?$/);
+  if (fraction) {
+    const num = fraction[1];
+    const den = fraction[2];
+    const VULGAR = {
+      "1/2": "½", "1/3": "⅓", "2/3": "⅔", "1/4": "¼", "3/4": "¾",
+      "1/5": "⅕", "2/5": "⅖", "3/5": "⅗", "4/5": "⅘",
+      "1/6": "⅙", "5/6": "⅚",
+      "1/7": "⅐",
+      "1/8": "⅛", "3/8": "⅜", "5/8": "⅝", "7/8": "⅞",
+      "1/9": "⅑",
+      "1/10": "⅒",
+    };
+    const key = `${num}/${den}`;
+    return VULGAR[key] ?? `${num}⁄${den}`;
   }
   return token;
 }
@@ -1579,6 +2045,19 @@ function renderSourceHtml(source, targetLogical = null, options = {}) {
         lineBreak();
         const num = rawTag.match(/\bnum=["']?([^"'\s>]+)/i)?.[1];
         if (num) out.push(`<span class="sense-number">${escapeHtml(num)}.</span> `);
+      } else if (name === "table") {
+        if (closing) {
+          closeTo("table");
+        } else {
+          lineBreak();
+          out.push('<table class="oed-table"><tbody>');
+          stack.push({ name: "table", close: "</tbody></table>" });
+        }
+      } else if (name === "l") {
+        if (closing) out.push("</td></tr>");
+        else out.push("<tr><td>");
+      } else if (name === "par") {
+        lineBreak();
       } else if (STYLE_TAGS.has(name)) {
         if (!WRAPPED_STYLE_TAGS.has(name)) {
           // Known but visually redundant wrappers are ignored to keep inline layout clean.
@@ -1598,6 +2077,12 @@ function renderSourceHtml(source, targetLogical = null, options = {}) {
     if (ch === "&") {
       const match = source.slice(pos).match(/^&[A-Za-z0-9]+\.?/);
       if (match) {
+        if (match[0] === "&tab." && stack.some((item) => stackName(item) === "table")) {
+          out.push("</td><td>");
+          pos += match[0].length;
+          lastWasBreak = false;
+          continue;
+        }
         if (isGreekContext()) {
           const greek = greekEntityPreview(match[0]);
           out.push(escapeHtml(greek ?? match[0]));

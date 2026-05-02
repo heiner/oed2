@@ -120,7 +120,7 @@ try {
   const screenArticle = await reader.decodeArticleAtOrdinal(349011);
   const screenHtml = renderArticleRecordsHtml(screenArticle.records, screenArticle.targetLogical);
   const screenText = screenHtml.replace(/<[^>]+>/g, "");
-  assert.match(screenText, /1712 Steele Spectator No\. 336 \u00b62 They plague/);
+  assert.match(screenText, /1712 Steele Spectator No\. 336 \u204b2 They plague/);
   assert.match(screenText, /There was a draught~screen just at the door/);
   assert.doesNotMatch(screenText, /&(?:amp;)?(?:page|dubh)\./);
 

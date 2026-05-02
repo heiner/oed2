@@ -208,6 +208,50 @@ input:focus-visible {
   vertical-align: super;
 }
 
+.tag-in {
+  font-size: 0.75em;
+  vertical-align: sub;
+  line-height: 0;
+}
+
+.tag-su {
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.oed-table {
+  display: block;
+  margin: 8px 0;
+  border-collapse: collapse;
+}
+
+.oed-table td {
+  padding: 1px 18px 1px 0;
+  vertical-align: baseline;
+}
+
+.tag-pi {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  font-size: 0.85em;
+  margin: 0 0.15em;
+  line-height: 1.1;
+}
+
+.tag-nu {
+  display: block;
+  border-bottom: 1px solid currentColor;
+  padding: 0 0.25em;
+}
+
+.tag-dn {
+  display: block;
+  padding: 0 0.25em;
+}
+
 .tag-ph {
   color: var(--cyan);
 }
