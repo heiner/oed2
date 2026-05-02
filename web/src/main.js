@@ -1,10 +1,9 @@
 import {
-  HttpRangeSource,
   OED2Reader,
   normalizeSearch,
   renderArticleRecordsHtml,
 } from "./oed2.js";
-import { IDBCachedRangeSource } from "./idb-source.js";
+import { IDBStreamingSource } from "./idb-source.js";
 
 const ISO_URL = "/OED2.iso";
 const DAT_OFFSET_IN_ISO = 0xa800;
@@ -28,6 +27,7 @@ const state = {
   pushUrlOnNextWrite: false,
   suggestions: [],
   suggestionFocus: -1,
+  appReady: false,
 };
 
 const els = {
@@ -41,6 +41,10 @@ const els = {
   articleTitle: document.querySelector("#article-title"),
   articleMeta: document.querySelector("#article-meta"),
   article: document.querySelector("#article"),
+  downloadCard: document.querySelector("#download-card"),
+  downloadProgress: document.querySelector("#download-progress"),
+  downloadProgressBar: document.querySelector("#download-progress-bar"),
+  downloadProgressText: document.querySelector("#download-progress-text"),
 };
 
 function setMode(mode) {
@@ -161,19 +165,57 @@ function hydrateReferenceLinks(root = els.article) {
 }
 
 async function connect() {
-  const httpSource = new HttpRangeSource(ISO_URL);
-  const cachedSource = new IDBCachedRangeSource(httpSource);
-  const reader = new OED2Reader(offsetSource(cachedSource, DAT_OFFSET_IN_ISO));
-  setStatus("Opening…");
+  const isoSource = new IDBStreamingSource(ISO_URL);
+  isoSource.onProgress = onDownloadProgress;
+  state.isoSource = isoSource;
+  onDownloadProgress({ downloaded: isoSource.bytesPersisted, total: isoSource.size, complete: false });
+  // Kick off the download in the background. We don't await it: the reader's
+  // read() awaits whichever bytes it actually needs via isoSource.waitFor().
+  isoSource.start().catch((error) => {
+    setStatus(`Download failed: ${error.message}`, "error");
+  });
+  const reader = new OED2Reader(offsetSource(isoSource, DAT_OFFSET_IN_ISO));
+  setStatus("Loading indexes…");
   try {
     await Promise.all([reader.readBodyControl(), reader.readOedList("word")]);
     state.reader = reader;
     setStatus("");
+    hideDownloadCard();
     return true;
   } catch (error) {
     setStatus(error.message, "error");
     return false;
   }
+}
+
+function formatMB(bytes) {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function onDownloadProgress({ downloaded, total, complete }) {
+  if (state.appReady) return;
+  if (complete) {
+    hideDownloadCard();
+    return;
+  }
+  if (els.downloadCard) {
+    els.downloadCard.hidden = false;
+    els.app.dataset.loading = "true";
+  }
+  if (els.downloadProgress) {
+    const pct = total ? Math.floor((downloaded / total) * 100) : 0;
+    els.downloadProgressBar.style.width = `${pct}%`;
+    els.downloadProgressText.textContent = total
+      ? `${formatMB(downloaded)} of ${formatMB(total)} (${pct}%)`
+      : `${formatMB(downloaded)} downloaded`;
+  }
+}
+
+function hideDownloadCard() {
+  state.appReady = true;
+  if (!els.downloadCard) return;
+  els.downloadCard.hidden = true;
+  delete els.app.dataset.loading;
 }
 
 function renderSuggestions(results) {
