@@ -231,7 +231,8 @@ input:focus-visible {
   vertical-align: baseline;
 }
 
-.tag-pi {
+.tag-pi,
+.tag-fr {
   display: inline-flex;
   flex-direction: column;
   align-items: center;

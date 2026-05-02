@@ -135,6 +135,7 @@ const ENTITY_NAME_UNICODE = {
   cdil: "̧",
   ced: "̧",
   undl: "̲",
+  circbl: "̥",
   // Classical / paleographic letters
   digamma: "ϝ",
   Digamma: "Ϝ",
@@ -156,6 +157,7 @@ const ENTITY_NAME_UNICODE = {
   // Astronomical / zodiac
   aries: "♈",
   taur: "♉",
+  canc: "♋",
   leo: "♌",
   virgo: "♍",
   libra: "♎",
@@ -193,6 +195,7 @@ const ENTITY_NAME_UNICODE = {
   dblar: "⇔",
   dblgt: "»",
   dbllt: "«",
+  decr: "↓",
   // Index hand
   index: "☞",
   // Paragraph variants — best-guess Unicode equivalents for OED's medieval paragraph
@@ -246,6 +249,8 @@ const ENTITY_NAME_UNICODE = {
   integ: "\u222b",
   le: "\u2264",
   ge: "\u2265",
+  slle: "\u2264",
+  slge: "\u2265",
   neq: "\u2260",
   div: "\u00f7",
   logicor: "\u2228",
@@ -400,7 +405,7 @@ const ENTITY_NAME_UNICODE = {
   // Math / set
   Summ: "\u2211",
   Integ: "\u222b",
-  conj: "\u2227",
+  conj: "\u260c",
   // Currency / letters
   Naira: "\u20a6",
   Asg: "\ua77d",
@@ -454,6 +459,8 @@ const ENTITY_NAME_UNICODE = {
   revsc: "\u0281",
   ibar: "\u0268",
   ng: "\u014b",
+  ope: "\u025b",
+  lm: "\u02d0",
   // More math / typographic symbols
   fact: "!",
   minpl: "\u2213",
@@ -569,6 +576,41 @@ const ENTITY_NAME_UNICODE = {
   shti: "\u026a",
   shtu: "\u028a",
   shtsyll: "\u02d8",
+  shtlong1: "\u23d3",
+  shtlong2: "\u23d2",
+  // Confirmed via article context
+  astm: "\u2042",
+  oeamp: "\u204a",
+  fata: "\u064e",
+  semE: "\u2203",
+  opp: "\u260d",
+  Chirho: "\u2627",
+  albrtime: "\ud834\udd35",
+  pauseo: "\ud834\udd10",
+  pauseu: "\ud834\udd11",
+  Bantuo: "\u0186",
+  bantuo: "\u0254",
+  supgt: "\u02c3",
+  suplt: "\u02c2",
+  btril: "\u25c1",
+  btrir: "\u25b7",
+  Nplus: "N\u207a",
+  vinc: "\u203e",
+  sur: "\u02b3",
+  frbl: "\u032d",
+  thinqm: "\ufe56",
+  // Chemistry bond strokes \u2014 bt* = top-half, bb* = bottom-half;
+  // r = right-leaning (/), l = left-leaning (\), c = center (vertical |)
+  btr1: "\u2571",
+  btr2: "\u2571",
+  bbr1: "\u2572",
+  bbr2: "\u2572",
+  btl1: "\u2572",
+  bbl1: "\u2571",
+  btc1: "\u2502",
+  btc2: "\u2502",
+  bbc1: "\u2502",
+  bbc2: "\u2502",
   // Fractions \u2014 most common ones; OED uses <num>on<den>(th)? for any other fraction
   // (handled generically in entityPreview below).
   "3on4": "\u00be",
@@ -717,13 +759,13 @@ const GREEK_STANDALONE_ENTITIES = {
 const STYLE_TAGS = new Set([
   "hw", "hm", "ph", "ps", "cf", "vf", "vd", "ve", "vfl", "la", "il",
   "bl", "pt", "q", "qt", "qd", "a", "w", "bib", "lc", "x", "xr", "sub",
-  "xs", "xid", "gr", "gk", "i", "b", "in", "su", "pi", "nu", "dn",
+  "xs", "xid", "gr", "gk", "i", "b", "in", "su", "pi", "nu", "dn", "fr",
 ]);
 
 const WRAPPED_STYLE_TAGS = new Set([
   "hw", "hm", "ph", "ps", "cf", "vf", "vd", "ve", "vfl", "la", "il",
   "bl", "pt", "q", "qd", "a", "w", "x", "sub", "xs", "xid", "gr", "gk",
-  "i", "b", "in", "su", "pi", "nu", "dn",
+  "i", "b", "in", "su", "pi", "nu", "dn", "fr",
 ]);
 
 const WORD_LIST_CODE_LABELS = {
@@ -1945,7 +1987,21 @@ function emitText(out, text, highlightText = "") {
   }
 }
 
+const VULGAR_FRACTIONS = {
+  "1/2": "½", "1/3": "⅓", "2/3": "⅔", "1/4": "¼", "3/4": "¾",
+  "1/5": "⅕", "2/5": "⅖", "3/5": "⅗", "4/5": "⅘",
+  "1/6": "⅙", "5/6": "⅚",
+  "1/7": "⅐",
+  "1/8": "⅛", "3/8": "⅜", "5/8": "⅝", "7/8": "⅞",
+  "1/9": "⅑",
+  "1/10": "⅒",
+};
+
 function renderSourceHtml(source, targetLogical = null, options = {}) {
+  source = source.replace(
+    /<fr>\s*<nu>\s*(\d+)\s*<\/nu>\s*<dn>\s*(\d+)\s*<\/dn>\s*<\/fr>/g,
+    (_, num, den) => VULGAR_FRACTIONS[`${num}/${den}`] ?? `${num}⁄${den}`,
+  );
   const out = [];
   const stack = [];
   let lastWasBreak = false;
