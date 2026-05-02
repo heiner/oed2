@@ -22,6 +22,7 @@ const mimeTypes = {
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".iso": "application/octet-stream",
+  ".png": "image/png",
 };
 
 function safePath(urlPath) {
