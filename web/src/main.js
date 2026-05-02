@@ -232,7 +232,7 @@ async function runLookup({ commit = false } = {}) {
   }
 
   try {
-    const results = await reader.lookup(query, 50);
+    const results = await reader.lookup(query, 200);
     if (token !== state.lookupToken) return;
     renderSuggestions(results);
     setStatus("");
@@ -448,7 +448,7 @@ async function hydrateFromUrl({ skipConnect = false } = {}) {
     try {
       let requested = null;
       if (urlState.query) {
-        const results = await reader.lookup(urlState.query, 50);
+        const results = await reader.lookup(urlState.query, 200);
         requested = results.find((r) => r.index === urlState.index) ?? null;
       }
       if (!requested) {

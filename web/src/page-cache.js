@@ -1,5 +1,5 @@
-const PAGE_SIZE = 0x10000;
-const MAX_PAGES = 256;
+const PAGE_SIZE = 0x80000;
+const MAX_PAGES = 64;
 
 export class PageCachedSource {
   constructor(underlying, { pageSize = PAGE_SIZE, maxPages = MAX_PAGES } = {}) {
