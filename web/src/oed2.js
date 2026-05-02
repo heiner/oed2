@@ -1737,11 +1737,11 @@ export class OED2Reader {
     let globalStart = list.blockStarts[blockIndex];
     let blocksRead = 0;
     let entriesScanned = 0;
-    const candidates = [];
+    const raw = [];
     let done = false;
-    const candidateCap = Math.max(limit * 4, 32);
+    const candidateCap = Math.max(Math.ceil(limit * 1.5), 32);
 
-    while (blockIndex < list.blockCount && candidates.length < candidateCap && !done) {
+    while (blockIndex < list.blockCount && raw.length < candidateCap && !done) {
       const entries = await this.decodeOedListBlock(list, blockIndex);
       blocksRead += 1;
       onProbe?.({
@@ -1756,15 +1756,11 @@ export class OED2Reader {
         entriesScanned += 1;
         if (bytesStartsWith(entry, key)) {
           const index = globalStart + localIndex;
-          const headgroup = await this.headgroupAtOrdinal(index);
           const listLabel = wordListKeyLabel(table, entry);
           const annotation = wordListKeyAnnotation(entry);
-          const headgroupKey = normalizeSearch(headgroup.label);
-          const listKey = normalizeSearch(listLabel);
-          const label = annotation || !headgroupKey.startsWith(listKey) ? listLabel : headgroup.label;
-          candidates.push({ ...headgroup, listLabel, label, annotation, indexKey: entry });
-          if (candidates.length >= candidateCap) break;
-        } else if (candidates.length > 0 || compareBytes(entry, key) > 0) {
+          raw.push({ index, entry, listLabel, annotation });
+          if (raw.length >= candidateCap) break;
+        } else if (raw.length > 0 || compareBytes(entry, key) > 0) {
           done = true;
           break;
         }
@@ -1773,6 +1769,16 @@ export class OED2Reader {
       blockIndex += 1;
     }
     onProbe?.({ markerBlock, blockIndex: blockIndex - 1, blocksRead, entriesScanned, done: true });
+
+    const headgroups = await Promise.all(raw.map((c) => this.headgroupAtOrdinal(c.index)));
+
+    const candidates = raw.map((c, i) => {
+      const headgroup = headgroups[i];
+      const headgroupKey = normalizeSearch(headgroup.label);
+      const listKey = normalizeSearch(c.listLabel);
+      const label = c.annotation || !headgroupKey.startsWith(listKey) ? c.listLabel : headgroup.label;
+      return { ...headgroup, listLabel: c.listLabel, label, annotation: c.annotation, indexKey: c.entry };
+    });
 
     const labelsWithPrimary = new Set();
     for (const c of candidates) {
