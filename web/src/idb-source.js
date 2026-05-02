@@ -18,10 +18,6 @@ export class IDBStreamingSource {
     this.onProgress = null;
   }
 
-  log(msg, ...rest) {
-    console.log(`[idb-iso] ${msg}`, ...rest);
-  }
-
   async openDb() {
     if (this.dbPromise) return this.dbPromise;
     this.dbPromise = new Promise((resolve, reject) => {
@@ -107,20 +103,16 @@ export class IDBStreamingSource {
   async start() {
     if (this.startPromise) return this.startPromise;
     this.startPromise = (async () => {
-      this.log("start: opening IDB", this.dbName);
       const persistedUrl = await this.getMeta(META_URL);
       if (persistedUrl && persistedUrl !== this.url) {
-        this.log("start: URL changed, resetting cache", { was: persistedUrl, now: this.url });
         await this.reset();
       }
       const persistedSize = await this.getMeta(META_SIZE);
       const persisted = await this.getMeta(META_PERSISTED);
       if (persistedSize) this.size = persistedSize;
       if (persisted) this.bytesPersisted = persisted;
-      this.log("start: meta", { size: this.size, persisted: this.bytesPersisted });
       this.emitProgress();
       if (this.size && this.bytesPersisted >= this.size) {
-        this.log("start: already complete");
         this.complete = true;
         this.emitProgress();
         this.resolveWaiters();
@@ -129,7 +121,6 @@ export class IDBStreamingSource {
       try {
         await this.streamDownload();
       } catch (error) {
-        this.log("streamDownload error", error);
         this.rejectAllWaiters(error);
         throw error;
       }
@@ -152,9 +143,7 @@ export class IDBStreamingSource {
   }
 
   async streamDownload() {
-    this.log("fetch", this.url);
     const response = await fetch(this.url);
-    this.log("fetch returned", { ok: response.ok, status: response.status });
     if (!response.ok) throw new Error(`Source returned HTTP ${response.status}`);
     const totalHeader = parseInt(response.headers.get("content-length") ?? "0", 10);
     if (totalHeader && this.size !== totalHeader) {
@@ -169,7 +158,6 @@ export class IDBStreamingSource {
     const skipUntil = this.bytesPersisted;
     let nextChunkIndex = Math.floor(skipUntil / CHUNK_SIZE);
     let streamSeen = 0;
-    this.log("stream begin", { skipUntil, firstChunkIndex: nextChunkIndex });
 
     let lastEmit = performance.now();
 
@@ -177,7 +165,6 @@ export class IDBStreamingSource {
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          this.log("stream done flag");
           break;
         }
         streamSeen += value.length;
@@ -234,7 +221,6 @@ export class IDBStreamingSource {
     }
 
     this.complete = true;
-    this.log("complete", { persisted: this.bytesPersisted, size: this.size, streamSeen });
     this.emitProgress();
     this.resolveWaiters();
   }

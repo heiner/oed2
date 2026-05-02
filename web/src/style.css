@@ -409,6 +409,10 @@ input:focus-visible {
   text-align: center;
 }
 
+#download-card[hidden] {
+  display: none;
+}
+
 #download-card h2 {
   margin: 0;
   font-weight: 400;

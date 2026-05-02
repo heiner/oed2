@@ -5,7 +5,8 @@ import {
 } from "./oed2.js";
 import { IDBStreamingSource } from "./idb-source.js";
 
-const ISO_URL = "/OED2.iso";
+const ISO_URL =
+  "https://archive.org/cors/oxford-english-dictionary-second-edition/Oxford%20English%20Dictionary%20%28Second%20Edition%29.iso";
 const DAT_OFFSET_IN_ISO = 0xa800;
 
 function offsetSource(source, baseOffset) {
