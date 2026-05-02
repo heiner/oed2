@@ -4,9 +4,21 @@ import {
   normalizeSearch,
   renderArticleRecordsHtml,
 } from "./oed2.js";
+import { IDBCachedRangeSource } from "./idb-source.js";
 
 const ISO_URL = "/OED2.iso";
 const DAT_OFFSET_IN_ISO = 0xa800;
+
+function offsetSource(source, baseOffset) {
+  return {
+    get size() {
+      return source.size === null || source.size === undefined ? null : source.size - baseOffset;
+    },
+    read(offset, length) {
+      return source.read(offset + baseOffset, length);
+    },
+  };
+}
 
 const state = {
   reader: null,
@@ -149,7 +161,9 @@ function hydrateReferenceLinks(root = els.article) {
 }
 
 async function connect() {
-  const reader = new OED2Reader(new HttpRangeSource(ISO_URL, DAT_OFFSET_IN_ISO));
+  const httpSource = new HttpRangeSource(ISO_URL);
+  const cachedSource = new IDBCachedRangeSource(httpSource);
+  const reader = new OED2Reader(offsetSource(cachedSource, DAT_OFFSET_IN_ISO));
   setStatus("Opening…");
   try {
     await Promise.all([reader.readBodyControl(), reader.readOedList("word")]);
