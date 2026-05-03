@@ -1727,7 +1727,7 @@ export class OED2Reader {
     return tableaPrimaryPrefix(encoded);
   }
 
-  async lookup(query, limit = 40, onProbe = null) {
+  async lookupDrafts(query, limit = 40, onProbe = null) {
     const list = await this.readOedList("word");
     const table = await this.readTableA("word");
     const key = tableaPrimaryPrefix(encodeTableAExe(table, `0a${query}`));
@@ -1758,7 +1758,7 @@ export class OED2Reader {
           const index = globalStart + localIndex;
           const listLabel = wordListKeyLabel(table, entry);
           const annotation = wordListKeyAnnotation(entry);
-          raw.push({ index, entry, listLabel, annotation });
+          raw.push({ index, indexKey: entry, listLabel, annotation, label: listLabel });
           if (raw.length >= candidateCap) break;
         } else if (raw.length > 0 || compareBytes(entry, key) > 0) {
           done = true;
@@ -1770,14 +1770,19 @@ export class OED2Reader {
     }
     onProbe?.({ markerBlock, blockIndex: blockIndex - 1, blocksRead, entriesScanned, done: true });
 
-    const headgroups = await Promise.all(raw.map((c) => this.headgroupAtOrdinal(c.index)));
+    return raw;
+  }
 
-    const candidates = raw.map((c, i) => {
+  async enrichLookup(drafts, limit = drafts.length) {
+    if (drafts.length === 0) return [];
+    const headgroups = await Promise.all(drafts.map((c) => this.headgroupAtOrdinal(c.index)));
+
+    const candidates = drafts.map((c, i) => {
       const headgroup = headgroups[i];
       const headgroupKey = normalizeSearch(headgroup.label);
       const listKey = normalizeSearch(c.listLabel);
       const label = c.annotation || !headgroupKey.startsWith(listKey) ? c.listLabel : headgroup.label;
-      return { ...headgroup, listLabel: c.listLabel, label, annotation: c.annotation, indexKey: c.entry };
+      return { ...headgroup, listLabel: c.listLabel, label, annotation: c.annotation, indexKey: c.indexKey };
     });
 
     const labelsWithPrimary = new Set();
@@ -1796,6 +1801,11 @@ export class OED2Reader {
       if (filtered.length >= limit) break;
     }
     return filtered;
+  }
+
+  async lookup(query, limit = 40, onProbe = null) {
+    const drafts = await this.lookupDrafts(query, limit, onProbe);
+    return this.enrichLookup(drafts, limit);
   }
 }
 

@@ -5,6 +5,7 @@ import {
   renderArticleRecordsHtml,
 } from "./oed2.js";
 import { PageCachedSource } from "./page-cache.js";
+import { IDBPageStore } from "./idb-store.js";
 
 const ISO_URL = "https://misty-heart-2775.heiner-a97.workers.dev/";
 const DAT_OFFSET_IN_ISO = 0xa800;
@@ -151,7 +152,8 @@ function hydrateReferenceLinks(root = els.article) {
 
 async function connect() {
   const network = new HttpRangeSource(ISO_URL, DAT_OFFSET_IN_ISO);
-  const cached = new PageCachedSource(network);
+  const store = new IDBPageStore();
+  const cached = new PageCachedSource(network, { persistentStore: store });
   const reader = new OED2Reader(cached);
   setStatus("Opening…");
   try {
@@ -248,10 +250,21 @@ async function runLookup({ commit = false } = {}) {
   }
 
   try {
-    const results = await reader.lookup(query, 200);
+    const drafts = await reader.lookupDrafts(query, 200);
+    if (token !== state.lookupToken) return;
+    renderSuggestions(drafts);
+    setStatus("");
+
+    const topDraft = drafts[0];
+    let previewPromise = null;
+    if (!commit && topDraft && getMode() !== "article") {
+      previewPromise = selectResult(topDraft, { switchToArticle: false });
+    }
+
+    const enrichedPromise = reader.enrichLookup(drafts, 200);
+    const results = await enrichedPromise;
     if (token !== state.lookupToken) return;
     renderSuggestions(results);
-    setStatus("");
 
     const top = results[0];
     if (commit) {
@@ -264,9 +277,8 @@ async function runLookup({ commit = false } = {}) {
         setMode("article");
         writeUrlState();
       }
-    } else if (top && getMode() !== "article") {
-      await selectResult(top, { switchToArticle: false });
     } else {
+      if (previewPromise) await previewPromise;
       writeUrlState();
     }
   } catch (error) {
@@ -288,6 +300,8 @@ async function selectResult(result, { switchToArticle = true } = {}) {
 
   if (result.labelHtml) {
     els.articleTitle.innerHTML = result.labelHtml;
+  } else if (result.listLabel || result.label) {
+    els.articleTitle.textContent = result.listLabel || result.label;
   } else {
     els.articleTitle.textContent = `Word #${result.index.toLocaleString()}`;
   }

@@ -2,10 +2,11 @@ const PAGE_SIZE = 0x80000;
 const MAX_PAGES = 64;
 
 export class PageCachedSource {
-  constructor(underlying, { pageSize = PAGE_SIZE, maxPages = MAX_PAGES } = {}) {
+  constructor(underlying, { pageSize = PAGE_SIZE, maxPages = MAX_PAGES, persistentStore = null } = {}) {
     this.underlying = underlying;
     this.pageSize = pageSize;
     this.maxPages = maxPages;
+    this.store = persistentStore;
     // Map<pageIndex, Promise<Uint8Array>> — a Promise that resolves to the
     // page bytes. Stored as Promises (not raw Uint8Array) so concurrent
     // requests for the same in-flight page share one underlying fetch.
@@ -18,21 +19,58 @@ export class PageCachedSource {
 
   ensurePages(startPage, endPage) {
     const missing = [];
+    const resolvers = new Map();
     for (let p = startPage; p <= endPage; p += 1) {
-      if (!this.cache.has(p)) missing.push(p);
+      if (this.cache.has(p)) continue;
+      let resolve;
+      let reject;
+      const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      this.cache.set(p, promise);
+      promise.catch(() => {
+        if (this.cache.get(p) === promise) this.cache.delete(p);
+      });
+      resolvers.set(p, { resolve, reject });
+      missing.push(p);
     }
     if (missing.length === 0) return;
 
+    void this.fillPages(missing, resolvers);
+  }
+
+  async fillPages(missing, resolvers) {
+    let needNetwork = missing;
+
+    if (this.store) {
+      const lookups = await Promise.all(missing.map((p) => this.store.get(p)));
+      const remaining = [];
+      for (let i = 0; i < missing.length; i += 1) {
+        const p = missing[i];
+        const hit = lookups[i];
+        if (hit && hit.byteLength !== undefined) {
+          const bytes = hit instanceof Uint8Array ? hit : new Uint8Array(hit);
+          resolvers.get(p).resolve(bytes);
+        } else {
+          remaining.push(p);
+        }
+      }
+      needNetwork = remaining;
+    }
+
+    if (needNetwork.length === 0) return;
+
     const runs = [];
-    let s = missing[0];
-    let e = missing[0];
-    for (let i = 1; i < missing.length; i += 1) {
-      if (missing[i] === e + 1) {
-        e = missing[i];
+    let s = needNetwork[0];
+    let e = needNetwork[0];
+    for (let i = 1; i < needNetwork.length; i += 1) {
+      if (needNetwork[i] === e + 1) {
+        e = needNetwork[i];
       } else {
         runs.push([s, e]);
-        s = missing[i];
-        e = missing[i];
+        s = needNetwork[i];
+        e = needNetwork[i];
       }
     }
     runs.push([s, e]);
@@ -44,22 +82,30 @@ export class PageCachedSource {
       if (typeof total === "number" && total > 0) {
         fetchLength = Math.min(fetchLength, total - fetchOffset);
       }
-      if (fetchLength <= 0) continue;
-
-      const fetchPromise = this.underlying.read(fetchOffset, fetchLength);
-      for (let p = a; p <= b; p += 1) {
-        const localIndex = p - a;
-        const pagePromise = fetchPromise.then((data) => {
-          const pageOffset = localIndex * this.pageSize;
-          if (pageOffset >= data.length) return new Uint8Array();
-          const pageEnd = Math.min(pageOffset + this.pageSize, data.length);
-          return data.slice(pageOffset, pageEnd);
-        });
-        this.cache.set(p, pagePromise);
-        pagePromise.catch(() => {
-          if (this.cache.get(p) === pagePromise) this.cache.delete(p);
-        });
+      if (fetchLength <= 0) {
+        for (let p = a; p <= b; p += 1) resolvers.get(p)?.resolve(new Uint8Array());
+        continue;
       }
+
+      this.underlying.read(fetchOffset, fetchLength).then(
+        (data) => {
+          for (let p = a; p <= b; p += 1) {
+            const localIndex = p - a;
+            const pageOffset = localIndex * this.pageSize;
+            if (pageOffset >= data.length) {
+              resolvers.get(p)?.resolve(new Uint8Array());
+              continue;
+            }
+            const pageEnd = Math.min(pageOffset + this.pageSize, data.length);
+            const pageBytes = data.slice(pageOffset, pageEnd);
+            resolvers.get(p)?.resolve(pageBytes);
+            if (this.store) void this.store.put(p, pageBytes);
+          }
+        },
+        (err) => {
+          for (let p = a; p <= b; p += 1) resolvers.get(p)?.reject(err);
+        },
+      );
     }
   }
 
