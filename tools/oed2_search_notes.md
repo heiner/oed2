@@ -193,6 +193,73 @@ find **how the candidate list at `[bp+0xe]` is built** before
 get consulted. Track the call chain *upward* from `seg5:0xab22`'s
 caller (`seg5:0x7e3e`).
 
+## Candidate-list architecture (confirmed)
+
+The 4-byte-record candidate list passed to `seg5:0xab22` is a
+**null-terminated array of u32-LE values** with `0xffff_ffff` as the
+sentinel. Confirmed by tracing:
+
+```
+seg4:0x4aa6   "search executor" — receives candidate table at [bp+0x6/0x8]
+              if non-zero: jumps to candidate-scan path at 0x4dea
+              if zero:     jumps to query-build path at 0x4d6d (calls seg6:0x573a)
+
+seg4:0x4dea   candidate-list scan loop:
+              for i in 0..1000:
+                  bx = base + (i * 4)         ; via seg7:0x873a (32-bit shl by 2)
+                  if [bx] == 0xffff and [bx+2] == 0xffff: break  ; sentinel
+              count = i
+              push (state, count, table_base)
+              call seg5:0x7e3e                ; QT mode dispatcher
+              ...
+
+seg4:0x41b2   convenience wrapper — receives a single u32 [bp+0x6/0x8]
+              builds a 1-element candidate list at fixed memory:
+                  [0x77c6:0x9176, 0x9178] = the value
+                  [0x77c6:0x917a, 0x917c] = 0xffff_ffff (sentinel)
+              calls seg4:0x4aa6 with that 8-byte buffer
+
+seg4:0x41b2 is registered as a CALLBACK via seg3:0x14b6 (window-creation),
+so the values it receives come from Windows event dispatch on user actions.
+```
+
+**The candidates are u32 deltas added to `state.base32` (state.+0x2c/0x2e)**
+to form stream positions. So the candidate list says "check positions
+base+x1, base+x2, ..." against the high-bit stream.
+
+For a single-keyword search the candidate list is built dynamically from
+a single seed value; for compound queries it's a pre-intersected set of
+candidate positions.
+
+## Where the candidate list comes from
+
+Three callers of `seg4:0x41b2` (the wrapper):
+- `seg4:0x46e1` — feeds the wrapper as a callback, after a "Cited Forms"
+  control open at 0x13b08000. Mode 0x202 (Cited Form Search).
+- `seg4:0x481a`, `seg4:0x4953` — similar shape, different modes.
+
+Three callers of `seg4:0x4aa6` (the executor):
+- `seg4:0x4202`, `seg4:0x4213` — both inside the `seg4:0x41b2` wrapper.
+- `seg4:0x457f` — likely a direct caller bypassing the wrapper.
+
+The "Cited Form" / "Etymology" / "Quotation Text" search modes all funnel
+through `seg4:0x4aa6` with mode-specific candidate lists. The candidate
+generation happens in code paths *before* the callback is registered
+— in the dialog setup and the user-input handlers.
+
+## Streams identified by base offset
+
+| Anchor | Role | Header? | Notes |
+|---|---|---|---|
+| `0x18ce0000` | "high-bit body/index stream" — stored at startup in main context+0x60/0x62 | **No header** at the boundary (bytes before and after equally high-entropy) — this is a *byte offset into* a larger compressed region, not a start-of-section | Used widely by `seg6:0xaa` cached reads |
+| `0x1b690000`, `0x1c300000`, `0x1c6f0000` | Other unknown DAT pointers from `seg4` dat-pairs | High-entropy bytes, no headers | Likely more streams for other modes |
+
+The fact that `0x18ce0000` has no boundary structure means the search
+engine treats large compressed regions as opaque streams accessed via
+seek+read primitives, with the actual structural information living in
+tables and indexes elsewhere (the lexicon, the sparse indexes, and
+per-search-state caches).
+
 ## Empirical results
 
 Picked first non-zero record from suspected table_B at `0xa4d7000`:
