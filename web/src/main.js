@@ -6,6 +6,7 @@ import {
 } from "./oed2.js";
 import { PageCachedSource } from "./page-cache.js";
 import { IDBPageStore } from "./idb-store.js";
+import { PrefixCompletionStore } from "./prefix-cache.js";
 
 const ISO_URL = "https://misty-heart-2775.heiner-a97.workers.dev/";
 const DAT_OFFSET_IN_ISO = 0xa800;
@@ -18,7 +19,10 @@ const state = {
   pushUrlOnNextWrite: false,
   suggestions: [],
   suggestionFocus: -1,
+  prefixCache: new PrefixCompletionStore(),
 };
+
+state.prefixCache.load();
 
 const els = {
   app: document.querySelector("#app"),
@@ -250,7 +254,14 @@ async function runLookup({ commit = false } = {}) {
   }
 
   try {
-    const drafts = await reader.lookupDrafts(query, 200);
+    const normalized = normalizeSearch(query);
+    let drafts = null;
+    if (normalized.length === 1 || normalized.length === 2) {
+      drafts = state.prefixCache.get(normalized);
+    }
+    if (!drafts) {
+      drafts = await reader.lookupDrafts(query, 200);
+    }
     if (token !== state.lookupToken) return;
     renderSuggestions(drafts);
     setStatus("");

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check:web": "node web/test_lookup.mjs",
+    "build:prefixes": "node web/build_prefix_completions.mjs",
     "serve": "node web/serve.mjs"
   }
 }
