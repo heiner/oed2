@@ -125,6 +125,7 @@ OED_LIST_TABLES = {
     'cited2': (0x13B08000, None),
     'work1': (None, None),
     'work2': (None, None),
+    'qtext': (None, None),
 }
 
 OED_SPARSE_INDEXES = {
@@ -3651,7 +3652,12 @@ def command_oedlookup(reader: OED2Reader, args: argparse.Namespace) -> None:
             query = '0a' + query
         table_a, _table_b = OED_LIST_TABLES[args.name]
         if table_a is None:
-            raise SystemExit(f'no table-A anchor recorded for {args.name!r}')
+            # qtext reuses the word list's table_A (per OED.EXE seg4:9c80
+            # using the all-1 placeholder calling convention to seg5:0x4260).
+            if args.name == 'qtext':
+                table_a, _ = OED_LIST_TABLES['word']
+            if table_a is None:
+                raise SystemExit(f'no table-A anchor recorded for {args.name!r}')
         table = parse_tablea_struct(reader.read_at_file_offset(table_a, 0x4000))
         full_encoded = encode_tablea_exe(table, query, args.mode, args.mode_hi)
         key = (

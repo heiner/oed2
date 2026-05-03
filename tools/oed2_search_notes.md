@@ -96,11 +96,34 @@ After list opening, the dispatcher runs at `seg4:0x5e0a`:
 ## Next disassembly targets
 
 1. `seg5:0x3494` ran past — the routine sets up a 0x268-byte state object and validates the list magic. The actual posting-list decoder must be downstream (called *after* the state is built and the magic is verified). Need to trace from `seg5:0x3494`'s tail forward, or find the routine that consumes the state object's `+0x6/+0x8` (control) and `+0xa/+0xc` (stream) fields together.
-2. The fact that `seg5:0x3de4` and `seg5:0x3e18` are simple BE u16/u32 readers strongly suggests the posting-list format isn't bit-packed — it's *byte-aligned* with u16/u32 fields. The "high entropy" of Section B is from Huffman-encoded bytes interleaved between u16/u32 metadata. So the decoder we're looking for likely reads a u16/u32 header (count, length, etc.) and then does a byte-level Huffman / arithmetic decode for the payload.
+2. The fact that `seg5:0x3de4` and `seg5:0x3e18` are simple BE u16/u32 readers strongly suggests *headers* are byte-aligned with u16/u32 fields. The *payload*, however, is not simple varints — empirically tested both LSB-first and MSB-first continuation-bit varints on posting lists at `Section_B + 0x7daec` (count=1710) and at `0x18ce0000 + 0x7daec` (alternative anchor); both decoders bail out after ~22-48 deltas and very few of the cumulative IDs land in the valid quotation-id range [0, 2,435,558]. So the payload is a **custom compressed format** — very likely a Huffman / canonical-Huffman bit stream similar to the body decoder (`seg5:0x28c2` builds canonical-Huffman range rows; the posting decoder probably uses a sibling routine).
+3. The 8-byte-record interpretation of `0xa4d7000` as a flat lexicon table_B is **wrong**. Empirical scan of the first 1 MB shows: 30.7% records look "valid" (small count, in-Section-B offset), 24.4% are zeros, 44.9% have garbage values; offsets are *not* monotone (24,423 descents in the first 99k non-zero rows). The region either uses variable-length records, is a different type of table altogether, or 0xa4d7000 simply isn't where the QT table_B lives. Need to find the real table_B by tracing OED.EXE's lookup path further.
 3. `seg7:0x68a0` is the stream-read primitive. Find all callers in `seg5`/`seg6` to enumerate everything that reads from a stream — the posting decoder is one of them.
 4. `seg5:0x528c` full scope — see how the post-lookup ordinal is consumed; specifically watch the path from `[es:bx+0x18]/[es:bx+0x1a]` (table_B internal pointer at list-object +0x18).
 5. Find where `0x18ce0000` is loaded into a search context — currently observed only at startup (`seg4:0x1b68`); the QT path may set up a different stream pointer.
 6. The `late-c/d/e` page format: each 4096-byte page has 186 slots × 11 u16-LE entries with 11 bits per logical entry. Could be a B-tree level (delta-encoded pointers) or a packed signature; needs `seg7:0x3bb4`'s sibling routines analysed.
+7. **Find the QT table_B properly.** `0xa4d7000` is *not* it (see point 3 above). Candidate strategies:
+   (a) Set a breakpoint in DOSBox at `seg5:0x528c`'s return and watch which DAT region the caller reads with the ordinal as offset.
+   (b) Search for routines that take an ordinal argument and multiply by 8 (`shl ordinal, 3`) before adding a DAT base — that's the natural shape of an ordinal-indexed table_B reader.
+   (c) Look at `seg5:0xe727`'s code path further to see what's done with the stored ordinals at `obj+0x44+i*8` — that's where ordinal → posting list happens.
+
+## Empirical results
+
+Picked first non-zero record from suspected table_B at `0xa4d7000`:
+`(count=1710, offset=0x7daec)`. Tried decoding the byte stream at two
+candidate anchors using both LSB-first and MSB-first continuation-bit
+varints:
+
+| Anchor + offset | Decoder | Bytes consumed | Decoded deltas | Valid IDs (in [0, 2.4M]) |
+|---|---|---:|---:|---:|
+| Section B + 0x7daec | LSB-first | 79 | 48 | 4 |
+| Section B + 0x7daec | MSB-first | 79 | 48 | 11 |
+| 0x18ce0000 + 0x7daec | LSB-first | 41 | 22 | 6 |
+| 0x18ce0000 + 0x7daec | MSB-first | 41 | 22 | 6 |
+
+Result is far below the expected 1710 entries → **not simple varints**. The
+payload format is a custom compressed code (likely canonical-Huffman per
+the body-decoder family at `seg5:0x28c2`).
 
 ## How to reproduce
 
