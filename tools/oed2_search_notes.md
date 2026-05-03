@@ -107,6 +107,92 @@ After list opening, the dispatcher runs at `seg4:0x5e0a`:
    (b) Search for routines that take an ordinal argument and multiply by 8 (`shl ordinal, 3`) before adding a DAT base — that's the natural shape of an ordinal-indexed table_B reader.
    (c) Look at `seg5:0xe727`'s code path further to see what's done with the stored ordinals at `obj+0x44+i*8` — that's where ordinal → posting list happens.
 
+## Search engine call graph (continued)
+
+The QT search engine is far more complex than a single ordinal→posting
+list lookup. Sketch of the call chain:
+
+```
+caller (multiple — one per search mode)
+  ↓ pushes (state, count, table_base_far)
+seg5:0x7e3e    QT-mode dispatcher
+                — checks state.+0x51 == 3 (mode = Quotation Text)
+                — checks state.+0x54/0x56 == 0
+                — forwards args to seg5:0xab22
+  ↓
+seg5:0xab22    search scan
+                — sanity checks state.+0x40 (count) < 16
+                — calls seg5:0xa3e4 (stream setup)
+                — initialises slot at state.+0x44 + count*8
+                — calls seg5:0xa1a8 (stream read) → stores at slot+0x46
+                — loops i in [0, count_arg):
+                    record = u32 BE at table_base[i*4]
+                    position = record + state.base32 (state.+0x2c/0x2e)
+                    seg5:0xa1c2(stream, position)  ← match check
+                    if non-zero: store and exit
+  ↓
+seg5:0xa1c2    match-test at position
+                — index = state.+0x20 (compound-query slot)
+                — reads 16-byte record at state.+0x24 + index*16
+                — gates on record.+0xe (a flag)
+                — calls near 0xa2d4 (deeper logic)
+                — calls seg6:0xaa twice with state buffers (cached stream read)
+  ↓
+seg6:0xaa      cached 4-byte stream reader
+                — buffer object {size, pos, data_far_ptr, stream_far_ptr}
+                — first call: stream-read 4 bytes via seg7:0x6a20
+                — subsequent: append to local cache buffer
+  ↓
+seg7:0x6a20    underlying stream read primitive
+```
+
+**State object (size 0x268 bytes, allocated by seg5:0x3494):**
+
+| Offset | Field |
+|---|---|
+| +0x08/+0x0a | high-bit stream object |
+| +0x1c/+0x1e | buffer ptr |
+| +0x20 | compound-query slot index |
+| +0x24 | far ptr to 16-byte query records |
+| +0x2c/+0x2e | base32 — added to record offsets to compute stream positions |
+| +0x38/+0x3a | another stream object |
+| +0x40 | accumulated count of search terms |
+| +0x42 | current iter |
+| +0x44 + i*8 | per-term slots (8 bytes each — 16 max) |
+| +0x51 | search mode (=3 for Quotation Text) |
+| +0x54..+0x56 | mode-specific gate field |
+
+## Architectural inference
+
+The structure shows the QT search engine implements **compound queries
+with verify-after-filter:**
+
+1. The search registers up to **16 query terms** (one per search box —
+   the OED reader supports compound queries with AND/OR/NEAR
+   operators).
+2. For each term, candidate **positions** are loaded into a 4-byte-record
+   table (somewhere upstream — possibly from the `late-c/d/e` sparse
+   indexes, which would explain why those indexes have logical_total =
+   2,435,558 quotations).
+3. `seg5:0xab22` scans candidate positions and calls `seg5:0xa1c2`
+   to verify each one. The verify step reads from the high-bit stream
+   to confirm the term occurs at that position.
+4. The 4-byte records are *delta offsets* added to a per-state base32
+   field — consistent with delta-encoded posting lists.
+
+This means **Section B may not be a flat "posting list per term"**. It
+could be a **positional inverted index where each "posting" is a 4-byte
+delta** and the late-c/d/e indexes pick the candidates. The per-list
+table_B I was looking for might not exist as a flat array — it's
+embedded in the search-state's 4-byte-record table that is built
+dynamically from sparse-index hits.
+
+This reframes the next investigation: instead of finding "QT table_B",
+find **how the candidate list at `[bp+0xe]` is built** before
+`seg5:0xab22` is called. That's where the late-c/d/e sparse indexes
+get consulted. Track the call chain *upward* from `seg5:0xab22`'s
+caller (`seg5:0x7e3e`).
+
 ## Empirical results
 
 Picked first non-zero record from suspected table_B at `0xa4d7000`:
