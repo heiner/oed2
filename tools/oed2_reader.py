@@ -112,6 +112,7 @@ OED_LISTS = {
     'cited2': (0x13A1B000, 'Cited Forms main index'),
     'work1': (0x12DEE800, 'Work Titles small index'),
     'work2': (0x131E8800, 'Work Titles main index'),
+    'qtext': (0x0A08B000, 'Quotation Text full-text index'),
 }
 
 OED_LIST_TABLES = {
