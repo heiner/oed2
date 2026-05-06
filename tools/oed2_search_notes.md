@@ -370,6 +370,42 @@ Find the **per-group test routine** — almost certainly somewhere in
 a buffer, compare each against a target value, return match status.
 Likely structure: a loop with `cmp ax, [si]; je found; lodsw; loop`.
 
+### What's been ruled out / verified
+
+Searched the binary for:
+
+- `repne scasw` (u16 array search): exactly 1 hit, but it's a false
+  positive (bytes inside a `call far` segment immediate).
+- `and ax, 0x7ff` / `and ax, 0x1ffff` / `and ax, 0x3ffff` (bit masks):
+  zero hits. Confirms no explicit bit-packed extraction is performed.
+- `imul reg, reg, 11` / `mov cl, 11` and similar for 17/18: only
+  scattered single hits, all coincidental (e.g. DOS-DATE month bits at
+  `seg7:0x81d6`).
+
+Suggests the actual lookup uses one of:
+
+1. A handwritten u16 linear search (hard to match by exact byte pattern).
+2. A binary tree / B-tree walk where slots are nodes of a search
+   structure — but slot values don't appear sorted, so this is less
+   likely.
+3. The "16 entries per group" interpretation might be wrong, and the
+   slot is actually a fixed-size record describing a single
+   higher-order entity (a quotation cluster, perhaps).
+
+### Empirical sort-order check
+
+Slot 0 of late-c happens to read as sorted u16 values (0x27cf, 0x3818,
+0x5854, ..., 0xffff) — but slot 1 doesn't, so this is coincidence.
+The values are not consistently sorted. This rules out simple binary
+search within slots.
+
+### Stronger next plan
+
+Find calls that use the sparse-index handle stored at `[0x91ac/0x91ae]`
+(set after the `seg7:0x3bb4` opener at `seg4:0x1b3a`). Those callers
+will be the routines that actually USE the sparse index, and
+inspecting them will reveal what semantics the index has.
+
 ## Empirical results
 
 Picked first non-zero record from suspected table_B at `0xa4d7000`:
