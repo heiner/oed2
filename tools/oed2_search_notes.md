@@ -260,6 +260,56 @@ seek+read primitives, with the actual structural information living in
 tables and indexes elsewhere (the lexicon, the sparse indexes, and
 per-search-state caches).
 
+## late-c/d/e page format (decoded)
+
+The three sparse `0xfb0f` indexes use a uniform bit-packing scheme:
+
+- Each page is `block_size` (= 0x1000 = 4096) bytes.
+- Pages are organised as **slots of `levels * 2` bytes**.
+- Each slot holds **16 logical entries**, each `levels` bits wide,
+  bit-packed LSB-first.
+- 16 × `levels` bits = `levels * 2` bytes exactly fills the slot — no padding.
+
+| Index | Levels | Slot size | Slots/page | Entries/page | Value range |
+|---|---:|---:|---:|---:|---:|
+| late-c | 11 | 22 B | 186 | 2,976 | 0..2047 |
+| late-d | 17 | 34 B | 120 | 1,920 | 0..131,071 |
+| late-e | 18 | 36 B | 113 | 1,808 | 0..262,143 |
+
+For each, total entries across all data pages just slightly exceeds
+`logical_total = 2,435,558` — the last page is padded.
+
+Empirically over the full 819 data pages of late-c (2,437,344 entries):
+
+- Distribution is **roughly uniform 0..2046** (3-5% per 64-wide bin)
+- **Value 2047** is a clear outlier at **13.73% of entries** — almost
+  certainly a "no-data" / "always-no-match" sentinel
+- Last page is 60% value `0` — that's the padding region beyond
+  logical_total
+
+This is the signature of a **bloom-filter-like signature file** where
+each quotation gets a fixed-width hash value. The three indexes
+combine for very low false-positive rate:
+
+```
+combined FP rate ≈ 1 / (2048 × 131072 × 262144) ≈ 1.4e-13
+```
+
+The verify-after-filter architecture in `seg5:0xab22` makes sense
+here: late-c/d/e quickly cull all 2.4M candidates down to a tiny set,
+which then gets verified by reading the actual quotation text via
+the high-bit stream.
+
+## Open questions about the hash
+
+- What hash function maps a query term → (h_c, h_d, h_e)?
+- Are h_c, h_d, h_e three separate hashes, or three different bit-extracts
+  of the same hash?
+- Is the hash defined over the term's encoded form (via `seg7:0x6dc6`
+  table-A encoding) or the raw text?
+- What does sentinel 2047 mean exactly — is it "always-no-match" or
+  "always-yes-match" or "this quotation has no indexed terms"?
+
 ## Empirical results
 
 Picked first non-zero record from suspected table_B at `0xa4d7000`:
