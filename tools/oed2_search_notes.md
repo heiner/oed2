@@ -310,6 +310,64 @@ the high-bit stream.
 - What does sentinel 2047 mean exactly — is it "always-no-match" or
   "always-yes-match" or "this quotation has no indexed terms"?
 
+## Sparse-index page format — DECODED
+
+`seg7:0x3aac` is the lookup routine. Pages use **bit-plane interleaved**
+storage, not bit-packed sequential. Algorithm:
+
+```
+input: handle (sparse-index object), key (logical entry index, u32)
+
+bounds check (handle.+0x26/+0x28 holds the maximum key)
+page_index   = key / handle.+0x24       ; +0x24 = page_logical_span
+slot_index   = (key % page_logical_span) / 16
+entry_in_slot = key % 16
+
+load page  (cached at handle.+0x32)
+slot_ptr   = page_buffer + (slot_index * handle.+0x4 * 2)
+                                       ; handle.+0x4 = levels (11/17/18)
+
+mask = 1 << entry_in_slot
+value = 0
+for i in 0..levels:
+    if slot_ptr[i] & mask: value |= 1 << i
+return value
+```
+
+Each u16 in a slot is a **bit plane** — bit at position E within u16 i is
+bit i of the value at entry position E. To extract entry E's value, you
+take a bit at position E from each of the `levels` u16s.
+
+This format makes **batch operations fast** — to find all entries with
+value V, you can compute the matching positions across all 16 entries of
+a slot in O(levels) u16 operations, instead of O(16 × levels).
+
+## What the indexes encode (CONFIRMED)
+
+Empirically decoded values reveal the role of each sparse index:
+
+| Index  | Levels | Max | What it encodes | Sentinel | Most common |
+|---|---:|---:|---|---:|---|
+| late-c | 11 | 2047 | per-quotation **date** (year code) | 2047 | 1611 (King James Bible — most-cited year) |
+| late-d | 17 | 131,071 | per-quotation **work1** ordinal | 77,050 (= work1 count) | 77050 (no work1 attribution) |
+| late-e | 18 | 262,143 | per-quotation **work2** ordinal | 237,332 (= work2 count) | 237332 (no work2 attribution) |
+
+`logical_total = 2,435,558` for all three is the OED2 total **quotation
+count**. Each quotation has three attributes (date, work1-ref, work2-ref)
+indexed for fast attribute search.
+
+This means **the late-c/d/e indexes are NOT used for Quotation Text
+Search**. They power the Quotation Date / Author / Work submodes:
+
+- Quotation Date Search: scan all 2.4M quotations, check late-c[i] for
+  match against query date.
+- Quotation Work Search: scan, check late-d[i] / late-e[i] against
+  work-list ordinal from user selection.
+
+The Text-Search posting list still lives somewhere else — most likely
+**inside the QT lexicon entries themselves** as inline pointers, since
+no separate flat table_B has been found for it.
+
 ## Refined hypothesis: per-group sorted hash sets
 
 The strict bit-pack interpretation has a wrinkle: searches across the
