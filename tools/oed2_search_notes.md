@@ -310,6 +310,66 @@ the high-bit stream.
 - What does sentinel 2047 mean exactly — is it "always-no-match" or
   "always-yes-match" or "this quotation has no indexed terms"?
 
+## Refined hypothesis: per-group sorted hash sets
+
+The strict bit-pack interpretation has a wrinkle: searches across the
+binary for `and ax, 0x7ff` (mask = (1<<11)-1) and similar patterns for
+17/18 bits returned **no hits**. The decoder doesn't appear to use
+explicit bit-masking. That suggests the data **isn't bit-packed**, and
+each "slot" is structured differently than I initially modeled.
+
+Refined model:
+
+- Each page = 186 / 120 / 113 **groups** (not "slots" of bit-packed
+  entries) for late-c / d / e.
+- Each group = `levels` u16 values (11 / 17 / 18).
+- Each group **covers** 16 logical entries (same span calculation
+  works for both interpretations).
+
+For late-c, the per-group u16 count is **variable** (5-11 used,
+0xffff-terminated, distribution heavily skewed to 9-10).
+For late-d / e, slots are **fixed at 17 / 18** values (no sentinels).
+
+This shape is consistent with:
+
+- late-c being a **per-group hash set** of up to 11 hash signatures
+  representing terms that occur in any of the group's 16 quotations
+- late-d / late-e being **fixed-size signatures** — possibly higher-
+  resolution hash buckets, or different structure entirely
+
+Search procedure (hypothesis):
+
+1. Hash the query term to produce three values (h_c, h_d, h_e).
+2. For each group across all pages:
+   a. If `h_c` ∈ group's u16 set in late-c → candidate group.
+   b. Confirm with corresponding group in late-d, then late-e.
+   c. For surviving group, verify against the 16 quotations in stream.
+
+False-positive math:
+- late-c per-group: each group has ~10 of 65,536 possible u16s → P(false
+  hit) ≈ 10/65536 ≈ 1.5e-4.
+- late-d / e: ~17-18 of 65,536 ≈ 2.7e-4.
+- Combined per-group: ≈ 1.1e-11. Effectively zero.
+
+Per-query candidate groups: 152,334 total groups × 1.5e-4 ≈ 23 candidate
+groups initially → 1 group after late-d → ~0 after late-e. The
+verify-stream step can then read each candidate's 16 quotations and
+do exact-match.
+
+This explains:
+- Why sequential scan is fast enough (only 152K group-tests, not 2.4M).
+- Why no explicit bit-masking is needed (the test is `value in u16 set`,
+  done via linear scan within a 22-byte slot).
+- Why the slot-fill is variable (only stores actual signatures, not
+  fixed positions).
+
+## Next disassembly target
+
+Find the **per-group test routine** — almost certainly somewhere in
+`seg7` near the sparse-index handling. Pattern: read N u16 values from
+a buffer, compare each against a target value, return match status.
+Likely structure: a loop with `cmp ax, [si]; je found; lodsw; loop`.
+
 ## Empirical results
 
 Picked first non-zero record from suspected table_B at `0xa4d7000`:
