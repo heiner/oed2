@@ -1,18 +1,26 @@
 import {
-  HttpRangeSource,
   OED2Reader,
   normalizeSearch,
   renderArticleRecordsHtml,
 } from "./oed2.js";
-import { PageCachedSource } from "./page-cache.js";
 import { IDBPageStore } from "./idb-store.js";
+import { IDBSource } from "./idb-source.js";
 import { PrefixCompletionStore } from "./prefix-cache.js";
+import { IsoDownloader, PAGE_SIZE, DAT_OFFSET_IN_ISO } from "./iso-downloader.js";
 
-const ISO_URL = "https://misty-heart-2775.heiner-a97.workers.dev/";
-const DAT_OFFSET_IN_ISO = 0xa800;
+const ARCHIVE_ISO_URL =
+  "https://archive.org/download/oxford-english-dictionary-second-edition/Oxford%20English%20Dictionary%20%28Second%20Edition%29.iso";
+
+// On localhost, hit the dev server's /OED2.iso passthrough so we don't pull
+// 635 MB from archive.org every test cycle.
+const ISO_URL =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "/OED2.iso"
+    : ARCHIVE_ISO_URL;
 
 const state = {
   reader: null,
+  store: new IDBPageStore(),
   lookupToken: 0,
   loadToken: 0,
   selectedIndex: null,
@@ -20,6 +28,8 @@ const state = {
   suggestions: [],
   suggestionFocus: -1,
   prefixCache: new PrefixCompletionStore(),
+  download: null, // { abort, promise }
+  manifest: null,
 };
 
 state.prefixCache.load();
@@ -35,6 +45,7 @@ const els = {
   articleTitle: document.querySelector("#article-title"),
   articleMeta: document.querySelector("#article-meta"),
   article: document.querySelector("#article"),
+  offlineButton: document.querySelector("#offline-button"),
 };
 
 function setMode(mode) {
@@ -154,36 +165,231 @@ function hydrateReferenceLinks(root = els.article) {
   }
 }
 
-async function connect() {
-  const network = new HttpRangeSource(ISO_URL, DAT_OFFSET_IN_ISO);
-  const store = new IDBPageStore();
-  const cached = new PageCachedSource(network, { persistentStore: store });
-  const reader = new OED2Reader(cached);
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function baseOfflineState() {
+  const m = state.manifest;
+  if (state.download) return "downloading";
+  if (!m) return "idle";
+  if (m.complete) return "complete";
+  if ((m.pagesStored ?? 0) > 0) return "partial";
+  return "idle";
+}
+
+function updateOfflineUi(extra = {}) {
+  const uiState = baseOfflineState();
+  const button = els.offlineButton;
+  if (uiState === "complete") {
+    button.hidden = true;
+    return;
+  }
+  button.hidden = false;
+  button.dataset.state = uiState;
+  if (uiState === "idle") {
+    button.textContent = "Download dictionary (~635 MB)";
+    button.disabled = false;
+  } else if (uiState === "partial") {
+    button.textContent = "Resume download";
+    button.disabled = false;
+  } else if (uiState === "downloading") {
+    const { isoReceived = 0, isoTotal = 0 } = extra;
+    if (isoTotal > 0) {
+      const pct = Math.min(100, (isoReceived / isoTotal) * 100);
+      button.textContent = `Downloading… ${pct.toFixed(1)}% (cancel)`;
+    } else {
+      button.textContent = `Downloading… ${formatBytes(isoReceived)} (cancel)`;
+    }
+    button.disabled = false;
+  }
+}
+
+function showOfflineError(message) {
+  const button = els.offlineButton;
+  button.hidden = false;
+  button.dataset.state = "error";
+  button.textContent = message;
+  button.disabled = true;
+}
+
+async function loadManifestAndDecide() {
+  if (!(await state.store.ready())) {
+    showOfflineError(
+      "Your browser does not allow persistent storage. Try in a normal (non-private) window.",
+    );
+    return;
+  }
+  const manifest = await state.store.getManifest();
+  state.manifest = manifest;
+  updateOfflineUi();
+  if (manifest?.complete) {
+    await connectOffline();
+  }
+}
+
+async function connectOffline() {
+  const datSize = state.manifest?.datSize ?? 0;
+  const source = new IDBSource(state.store, { pageSize: PAGE_SIZE, datSize });
+  const reader = new OED2Reader(source);
   setStatus("Opening…");
   try {
     await Promise.all([reader.readBodyControl(), reader.readOedList("word")]);
     state.reader = reader;
     setStatus("");
-    void prefetchWordListRegion(cached, reader.lists.get("word"));
     return true;
   } catch (error) {
+    console.error(error);
     setStatus(error.message, "error");
     return false;
   }
 }
 
-async function prefetchWordListRegion(source, list) {
-  if (!list) return;
-  // Prefetch control + the 1039 list blocks + table-A (~2 MB total).
-  // Table-B (~3.6 MB on its own) is fetched lazily; with 512 KB
-  // pages a single lookup of N suggestions only touches one or two
-  // table-B pages, so it amortises away anyway.
-  const start = list.controlOffset;
-  const end = list.blockDataOffset + list.blockCount * list.blockSize + 0x4000;
+async function startDownload() {
+  if (state.download) return;
+  if (!(await state.store.ready())) {
+    showOfflineError("Persistent storage not available in this browser.");
+    return;
+  }
+  const controller = new AbortController();
+  let isoReceived = 0;
+  let isoTotal = 0;
+  let pagesStored = 0;
+  const downloader = new IsoDownloader({
+    url: ISO_URL,
+    store: state.store,
+    signal: controller.signal,
+    onProgress: (ev) => {
+      isoReceived = ev.isoReceived;
+      isoTotal = ev.isoTotal;
+      pagesStored = ev.pagesStored;
+      updateOfflineUi({ isoReceived, isoTotal });
+      // Persist partial-progress manifest periodically.
+      if (ev.type !== "done") {
+        state.manifest = {
+          complete: false,
+          bytesReceived: isoReceived,
+          bytesStored: pagesStored * PAGE_SIZE,
+          pagesStored,
+          datSize: 0,
+        };
+        // Fire-and-forget — we want to persist progress but not block the
+        // streaming reader on each IDB write.
+        void state.store.setManifest(state.manifest);
+      }
+    },
+  });
+  state.download = { controller };
+  updateOfflineUi({ isoReceived: 0, isoTotal: 0 });
   try {
-    await source.read(start, end - start);
-  } catch (_) {
-    // Silent — this is just a warm-up.
+    const summary = await downloader.run();
+    state.manifest = {
+      complete: true,
+      datSize: summary.datSize,
+      isoSize: isoReceived,
+      pagesStored: summary.pagesStored,
+      bytesStored: summary.pagesStored * PAGE_SIZE,
+      completedAt: Date.now(),
+    };
+    await state.store.setManifest(state.manifest);
+    state.download = null;
+    updateOfflineUi();
+    await connectOffline();
+    if (els.query.value.trim()) void runLookup({ commit: false });
+  } catch (error) {
+    state.download = null;
+    if (error?.name === "AbortError") {
+      // Keep whatever was stored; show partial state.
+      state.manifest = await state.store.getManifest();
+      updateOfflineUi();
+    } else {
+      console.error(error);
+      showOfflineError(`Download failed: ${error.message}. You can retry.`);
+    }
+  }
+}
+
+function cancelDownload() {
+  if (!state.download) return;
+  state.download.controller.abort();
+}
+
+async function runLookup({ commit = false } = {}) {
+  const query = els.query.value.trim();
+  const token = ++state.lookupToken;
+  const normalized = normalizeSearch(query);
+
+  if (!normalized) {
+    hideSuggestions();
+    if (!commit) {
+      clearArticle();
+      setMode("home");
+      writeUrlState();
+    }
+    setStatus("");
+    return;
+  }
+
+  // Try prefix cache first for 1–2 letter queries (works without a download).
+  let drafts = null;
+  if (normalized.length === 1 || normalized.length === 2) {
+    drafts = state.prefixCache.get(normalized);
+  }
+
+  const reader = state.reader;
+
+  if (!drafts && !reader) {
+    // Offline data not available — tell the user.
+    renderSuggestions([]);
+    setStatus("Download the dictionary below to enable full search.", "warn");
+    return;
+  }
+
+  try {
+    if (!drafts) {
+      drafts = await reader.lookupDrafts(query, 200);
+    }
+    if (token !== state.lookupToken) return;
+    renderSuggestions(drafts);
+    setStatus("");
+
+    const topDraft = drafts[0];
+    let previewPromise = null;
+    if (!commit && topDraft && getMode() !== "article" && reader) {
+      previewPromise = selectResult(topDraft, { switchToArticle: false });
+    }
+
+    let results = drafts;
+    if (reader) {
+      const enrichedPromise = reader.enrichLookup(drafts, 200);
+      results = await enrichedPromise;
+      if (token !== state.lookupToken) return;
+      renderSuggestions(results);
+    }
+
+    const top = results[0];
+    if (commit) {
+      hideSuggestions();
+      if (top && reader) {
+        state.pushUrlOnNextWrite = true;
+        await selectResult(top, { switchToArticle: true });
+      } else if (top && !reader) {
+        setStatus("Download the dictionary below to view articles.", "warn");
+      } else {
+        clearArticle();
+        setMode("article");
+        writeUrlState();
+      }
+    } else {
+      if (previewPromise) await previewPromise;
+      writeUrlState();
+    }
+  } catch (error) {
+    if (token !== state.lookupToken) return;
+    setStatus(error.message, "error");
   }
 }
 
@@ -236,68 +442,6 @@ function focusSuggestion(index) {
   state.suggestionFocus = index;
 }
 
-async function runLookup({ commit = false } = {}) {
-  const reader = state.reader;
-  const query = els.query.value.trim();
-  const token = ++state.lookupToken;
-
-  if (!reader) return;
-  if (!normalizeSearch(query)) {
-    hideSuggestions();
-    if (!commit) {
-      clearArticle();
-      setMode("home");
-      writeUrlState();
-    }
-    setStatus("");
-    return;
-  }
-
-  try {
-    const normalized = normalizeSearch(query);
-    let drafts = null;
-    if (normalized.length === 1 || normalized.length === 2) {
-      drafts = state.prefixCache.get(normalized);
-    }
-    if (!drafts) {
-      drafts = await reader.lookupDrafts(query, 200);
-    }
-    if (token !== state.lookupToken) return;
-    renderSuggestions(drafts);
-    setStatus("");
-
-    const topDraft = drafts[0];
-    let previewPromise = null;
-    if (!commit && topDraft && getMode() !== "article") {
-      previewPromise = selectResult(topDraft, { switchToArticle: false });
-    }
-
-    const enrichedPromise = reader.enrichLookup(drafts, 200);
-    const results = await enrichedPromise;
-    if (token !== state.lookupToken) return;
-    renderSuggestions(results);
-
-    const top = results[0];
-    if (commit) {
-      hideSuggestions();
-      if (top) {
-        state.pushUrlOnNextWrite = true;
-        await selectResult(top, { switchToArticle: true });
-      } else {
-        clearArticle();
-        setMode("article");
-        writeUrlState();
-      }
-    } else {
-      if (previewPromise) await previewPromise;
-      writeUrlState();
-    }
-  } catch (error) {
-    if (token !== state.lookupToken) return;
-    setStatus(error.message, "error");
-  }
-}
-
 function scrollArticleToTarget(target) {
   if (!target) return;
   target.scrollIntoView({ block: "start", behavior: "auto" });
@@ -305,7 +449,10 @@ function scrollArticleToTarget(target) {
 
 async function selectResult(result, { switchToArticle = true } = {}) {
   const reader = state.reader;
-  if (!reader) return;
+  if (!reader) {
+    setStatus("Download the dictionary below to view articles.", "warn");
+    return;
+  }
   const loadToken = ++state.loadToken;
   state.selectedIndex = result.index;
 
@@ -380,7 +527,7 @@ els.query.addEventListener("input", debounce(() => void runLookup({ commit: fals
 els.query.addEventListener("focus", () => {
   if (state.suggestions.length > 0) {
     els.suggestions.hidden = false;
-  } else if (els.query.value.trim() && state.reader) {
+  } else if (els.query.value.trim()) {
     void runLookup({ commit: false });
   }
 });
@@ -470,22 +617,39 @@ els.article.addEventListener("click", (event) => {
   void runLookup({ commit: true });
 });
 
-window.addEventListener("popstate", () => {
-  state.pushUrlOnNextWrite = false;
-  void hydrateFromUrl({ skipConnect: !!state.reader });
+els.offlineButton?.addEventListener("click", () => {
+  if (state.download) {
+    cancelDownload();
+  } else {
+    void startDownload();
+  }
 });
 
-async function hydrateFromUrl({ skipConnect = false } = {}) {
+window.addEventListener("beforeunload", (event) => {
+  if (state.download) {
+    event.preventDefault();
+    event.returnValue =
+      "A dictionary download is in progress. Leaving will pause it; you can resume later.";
+    return event.returnValue;
+  }
+});
+
+window.addEventListener("popstate", () => {
+  state.pushUrlOnNextWrite = false;
+  void hydrateFromUrl();
+});
+
+async function hydrateFromUrl() {
   const urlState = parseUrlState();
   els.query.value = urlState.query;
-  if (!skipConnect) {
-    const ok = await connect();
-    if (!ok) return;
-  }
+  await loadManifestAndDecide();
   if (urlState.index !== null) {
     setMode("article");
     const reader = state.reader;
-    if (!reader) return;
+    if (!reader) {
+      setStatus("Download the dictionary below to view articles.", "warn");
+      return;
+    }
     try {
       let requested = null;
       if (urlState.query) {

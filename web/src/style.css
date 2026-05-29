@@ -144,8 +144,16 @@ input:focus-visible {
   color: var(--danger);
 }
 
-#app[data-mode="home"] .status {
+.status[data-tone="warn"] {
+  color: var(--gold);
+}
+
+#app[data-mode="home"] .status:empty {
   visibility: hidden;
+}
+
+#app[data-mode="article"] #offline-button {
+  display: none;
 }
 
 .article-zone {

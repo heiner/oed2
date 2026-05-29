@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>OED2</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="preconnect" href="https://misty-heart-2775.heiner-a97.workers.dev" crossorigin>
     <link rel="preload" as="fetch" href="./prefix-completions.json" crossorigin>
     <link rel="stylesheet" href="./src/style.css">
   </head>
@@ -29,6 +28,8 @@
           <ul id="suggestions" role="listbox" hidden></ul>
         </form>
         <div id="status" class="status" aria-live="polite"></div>
+
+        <button id="offline-button" type="button" hidden></button>
       </main>
 
       <section class="article-zone" aria-label="Article">
