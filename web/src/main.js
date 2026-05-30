@@ -9,7 +9,7 @@ import { PrefixCompletionStore } from "./prefix-cache.js";
 import { IsoDownloader, PAGE_SIZE, DAT_OFFSET_IN_ISO } from "./iso-downloader.js";
 
 const ARCHIVE_ISO_URL =
-  "https://archive.org/download/oxford-english-dictionary-second-edition/Oxford%20English%20Dictionary%20%28Second%20Edition%29.iso";
+  "https://archive.org/cors/oxford-english-dictionary-second-edition/Oxford%20English%20Dictionary%20%28Second%20Edition%29.iso";
 
 // On localhost, hit the dev server's /OED2.iso passthrough so we don't pull
 // 635 MB from archive.org every test cycle.
